@@ -2,8 +2,6 @@
 
 ## 1. Mapping OWL to LPG format
 
-# OWL-to-LPG Mapping Rules
-
 | **OWL Element**                              | **LPG Representation (Neo4j)**                               |
 | -------------------------------------------- | ------------------------------------------------------------ |
 | **Class (`owl:Class`)**                      | Node labeled as the class name (`:Person`, `:City`)          |
