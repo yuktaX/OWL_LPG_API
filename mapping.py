@@ -3,8 +3,8 @@ from py2neo import Graph as NeoGraph, Node, Relationship
 from rdflib.namespace import RDF, RDFS, OWL
 
 username = "neo4j"
-password = "12345"
-file = "example.owl"
+password = "neo4j_nt"
+file = "example2.owl"
 format = "xml"
 
 # Connect to Neo4j
@@ -15,18 +15,18 @@ def connectNeo4j(username, password):
 # Load OWL file
 def loadOWL(filename, format):
    rdf_graph = rdflib.Graph()
-   rdf_graph.parse("example.owl", format="xml")
+   rdf_graph.parse("example2.owl", format="xml")
    return rdf_graph
 
 
-def mapOWLtoLPG():
+def mapOWLtoLPG(filename):
 
    # Create and clear Neo4j database
    neo4j_graph = connectNeo4j(username=username, password=password)
    neo4j_graph.delete_all()
    
    #create graph
-   rdf_graph = loadOWL(file, format)
+   rdf_graph = loadOWL(filename, format)
 
    # Store nodes for individuals and classes
    nodes = {}
@@ -57,4 +57,4 @@ def mapOWLtoLPG():
 
    print("OWL to LPG Conversion Complete!")
 
-mapOWLtoLPG()
+# mapOWLtoLPG()
