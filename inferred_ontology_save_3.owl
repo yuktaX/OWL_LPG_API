@@ -37,8 +37,8 @@
 
 <owl:Class rdf:about="http://example.org/ontology/ComputerScienceStudent">
   <rdfs:subClassOf rdf:resource="http://example.org/ontology/Student"/>
-  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
   <rdfs:subClassOf rdf:resource="http://example.org/ontology/Person"/>
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
 </owl:Class>
 
 <owl:Class rdf:about="http://example.org/ontology/Metropolis">
@@ -51,16 +51,16 @@
 <owl:NamedIndividual rdf:about="http://example.org/ontology/Alice">
   <rdf:type rdf:resource="http://example.org/ontology/ComputerScienceStudent"/>
   <livesIn rdf:resource="http://example.org/ontology/NewYork"/>
-  <rdf:type rdf:resource="http://example.org/ontology/Student"/>
-  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
   <rdf:type rdf:resource="http://example.org/ontology/Person"/>
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdf:type rdf:resource="http://example.org/ontology/Student"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="http://example.org/ontology/NewYork">
   <rdf:type rdf:resource="http://example.org/ontology/Metropolis"/>
   <locatedIn rdf:resource="http://example.org/ontology/USA"/>
-  <rdf:type rdf:resource="http://example.org/ontology/City"/>
   <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdf:type rdf:resource="http://example.org/ontology/City"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="http://example.org/ontology/USA">
