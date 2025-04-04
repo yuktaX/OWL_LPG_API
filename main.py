@@ -15,12 +15,15 @@ def main():
         if choice == "1":
             filename = input("Enter the .owl filename: ")
             mapping.mapOWLtoLPG(filename)
+            
         elif choice == "2":
             reasoning_save.reasoning_function(inferred_onto_path)
             mapping.mapOWLtoLPG(inferred_onto_path)
+            
         elif choice == "3":
             print("Exiting program.")
             break
+        
         else:
             print("Invalid choice. Please try again.")
 

@@ -2,8 +2,8 @@ import rdflib
 from py2neo import Graph as NeoGraph, Node, Relationship
 from rdflib.namespace import RDF, RDFS, OWL
 
-username = ""  #put your own neo4j username here
-password = ""  #put your own password here
+username = "neo4j"  #put your own neo4j username here
+password = "12345"  #put your own password here
 
 format = "xml"
 
@@ -15,7 +15,7 @@ def connectNeo4j(username, password):
 # Load OWL file
 def loadOWL(filename, format):
    rdf_graph = rdflib.Graph()
-   rdf_graph.parse("example2.owl", format="xml")
+   rdf_graph.parse(filename, format="xml")
    return rdf_graph
 
 
