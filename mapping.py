@@ -2,9 +2,9 @@ import rdflib
 from py2neo import Graph as NeoGraph, Node, Relationship
 from rdflib.namespace import RDF, RDFS, OWL
 
-username = "neo4j"
-password = "neo4j_nt"
-file = "example2.owl"
+username = ""  #put your own neo4j username here
+password = ""  #put your own password here
+
 format = "xml"
 
 # Connect to Neo4j
