@@ -1,4 +1,8 @@
 import rdflib
+import logging
+from rdflib import plugin
+
+# logging.basicConfig(level=logging.DEBUG)
 from py2neo import Graph as NeoGraph, Node, Relationship
 from rdflib.namespace import RDF, RDFS, OWL
 
@@ -35,10 +39,12 @@ class Mapper:
 
       # Step 1: Process OWL Classes and Create LPG Nodes
       for subj, _, obj in rdf_graph.triples((None, RDF.type, OWL.Class)):
+         print(subj, _, obj)
          class_name = subj.split("/")[-1]  # Extract class name
          class_node = Node("Class", name=class_name)
          nodes[subj] = class_node
          self.neo4j_graph.create(class_node)
+      
 
       # Step 2: Process Individuals and Assign Classes
       for subj, _, obj in rdf_graph.triples((None, RDF.type, None)):
@@ -48,16 +54,28 @@ class Mapper:
             individual_node = Node(class_name, name=individual_name)
             nodes[subj] = individual_node
             self.neo4j_graph.create(individual_node)
+      
+      #working till here for some
 
       # Step 3: Process Object Properties (Relationships)
+      # Bind namespaces explicitly to ensure object properties are recognized
+      rdf_graph.bind("owl", OWL)
+      rdf_graph.bind("rdf", RDF)
+      rdf_graph.bind("rdfs", RDFS)
+
       for subj, pred, obj in rdf_graph.triples((None, None, None)):
-         if pred not in [RDF.type, RDFS.subClassOf]:  # Skip type declarations
-            rel_name = pred.split("/")[-1]
+         print(f"Triple: {subj}, {pred}, {obj}")
+         if pred not in [RDF.type]:  # Skip type declarations
+            rel_name = str(pred).split("/")[-1] if "/" in str(pred) else str(pred)
             if subj in nodes and obj in nodes:
                relationship = Relationship(nodes[subj], rel_name, nodes[obj])
+               print(f"Creating relationship: {nodes[subj]['name']} --{rel_name}--> {nodes[obj]['name']}")
                self.neo4j_graph.create(relationship)
 
       print("OWL to LPG Conversion Complete!")
 
 test = Mapper(username, password, format)
-test.map_owl_to_lpg("PizzaOntologyOWL.owl")
+# test.map_owl_to_lpg("output_pizza.owl")
+# test.map_owl_to_lpg("example3.owl")
+test.map_owl_to_lpg("example3.owl")
+
