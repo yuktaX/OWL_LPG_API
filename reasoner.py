@@ -113,7 +113,8 @@ class Reasoner:
       print(f"Ontology saved to {self.output_filepath}")
    
 
-test =  Reasoner("example3.owl", "output_alice.owl")
+# test =  Reasoner("example3.owl", "output_alice.owl")
+test = Reasoner("PizzaOntology.rdf","output_pizza_new.owl")
 test.run_reasoner()
 print("*******Reasoner finished********")
 test.reason_subclasses()
