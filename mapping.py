@@ -122,7 +122,7 @@ class Mapper:
                      for ancestor_prop in prop.is_a:
                         if isinstance(ancestor_prop, ObjectPropertyClass) and ancestor_prop != prop:
                            rel_name = ancestor_prop.name
-                           relationship = Relationship(cls_node, rel_name, range_node)
+                           relationship = Relationship(cls_node, rel_name.upper(), range_node)
                            # print(f"Creating inferred relationship: {cls.name} --{rel_name}--> {range_class.name}")
                            self.neo4j_graph.merge(relationship)
                               
@@ -153,7 +153,7 @@ class Mapper:
 
                      # Create a relationship between the individual and the class (e.g., "INSTANCE_OF")
                      rel = Relationship(individual_node, "INSTANCE_OF", class_node)
-                     self.neo4j_graph.create(rel)
+                     self.neo4j_graph.merge(rel)
                      print(f"Creating INSTANCE_OF: {individual_name} --> {class_name}")
 
                   # Process relationships between individuals
@@ -176,7 +176,7 @@ class Mapper:
 
                               # Create a relationship between the individuals
                               rel = Relationship(individual_node, prop_name.upper(), target_node)
-                              self.neo4j_graph.create(rel)
+                              self.neo4j_graph.merge(rel)
                               print(f"Creating Relationship: {individual_name} --{prop_name.upper()}--> {target_name}")
        
    def process_equivalent_class_intersections(self):
@@ -241,6 +241,7 @@ class Mapper:
                            self.neo4j_graph.merge(Relationship(start_node,
                                                    f"{prop_name.upper()}_SOME",
                                                    filler_node))
+                           
    def process_inverse_object_properties(self, nodes):
       for prop in self.onto.object_properties():
          # Check if the property has an inverse
@@ -274,9 +275,45 @@ class Mapper:
 
                # Create a relationship for the inverse property
                rel = Relationship(range_node, inverse_name.upper(), domain_node)
-               self.neo4j_graph.create(rel)
+               self.neo4j_graph.merge(rel)
                print(f"Creating INVERSE Relationship: {range_name} --{inverse_name.upper()}--> {domain_name}")
-                           
+               
+   def process_object_subproperties(self, nodes):
+      for prop in self.onto.object_properties():
+         # Check if the property has a superproperty (subPropertyOf relationship)
+         for superprop in prop.is_a:
+            if isinstance(superprop, ObjectPropertyClass):
+               prop_name = prop.name
+               superprop_name = superprop.name
+               print(f"Processing subproperty: {prop_name} ⊆ {superprop_name}")
+
+               # Iterate through the domain and range of the object property
+               for domain_class in prop.domain:
+                  for range_class in prop.range:
+                     # Extract the local names for domain and range classes
+                     domain_name = self.extract_local_name(domain_class.iri)
+                     range_name = self.extract_local_name(range_class.iri)
+                     
+                     # print(domain_name, range_name)
+
+                     # Fetch or create the domain and range class nodes
+                     domain_node = nodes.get(domain_class.iri)
+                     if not domain_node:
+                        domain_node = Node("Class", name=domain_name)
+                        self.neo4j_graph.create(domain_node)
+                        nodes[domain_class.iri] = domain_node
+
+                     range_node = nodes.get(range_class.iri)
+                     if not range_node:
+                        range_node = Node("Class", name=range_name)
+                        self.neo4j_graph.create(range_node)
+                        nodes[range_class.iri] = range_node
+
+                     # Create a relationship for the superproperty
+                     rel = Relationship(domain_node, superprop_name.upper(), range_node)
+                     self.neo4j_graph.merge(rel)
+                     print(f"Creating SUBPROPERTY_OF Relationship: {domain_name} --{superprop_name.upper()}--> {range_name}")
+      
    def map_owl_to_lpg(self):
       # Connect to Neo4j and clear the database
       self.connect_neo4j()
@@ -300,8 +337,11 @@ class Mapper:
       # Step 5: Process equivalent classes
       self.process_equivalent_class_intersections()
       
-      # Set 6: Process inverse object properties
+      # Step 6: Process inverse object properties
       self.process_inverse_object_properties(nodes)
+      
+      # Step 7: Process object subproperties
+      self.process_object_subproperties(nodes)
 
       print("OWL to LPG Conversion Complete!")
 
