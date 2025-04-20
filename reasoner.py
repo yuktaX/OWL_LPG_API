@@ -26,7 +26,7 @@ class Reasoner:
    
 
 # test =  Reasoner("example3.owl", "output_alice.owl")
-test = Reasoner("PizzaOntology.rdf","output_pizza_new.owl")
+test = Reasoner("PizzaOntology_1.rdf","output_pizza_new.owl")
 test.run_reasoner()
 print("*******Reasoner finished********")
 test.save_ontology()
