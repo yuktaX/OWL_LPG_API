@@ -81,8 +81,8 @@
       <owl:someValuesFrom rdf:resource="#TomatoTopping"/>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, Pepperoni and Jalapeno toppings.</rdfs:comment>
 </owl:Class>
 
@@ -127,8 +127,8 @@
       <owl:someValuesFrom rdf:resource="#TomatoTopping"/>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, and Pepperoni toppings.</rdfs:comment>
 </owl:Class>
 
@@ -293,8 +293,8 @@
       </owl:allValuesFrom>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#VegetarianPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella and Tomato toppings.</rdfs:comment>
 </owl:Class>
 
@@ -363,9 +363,9 @@
       </owl:allValuesFrom>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
   <rdfs:subClassOf rdf:resource="#VegetarianPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, Olive and Parmesan toppings.</rdfs:comment>
 </owl:Class>
 
