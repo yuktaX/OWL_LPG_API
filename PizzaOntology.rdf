@@ -56,6 +56,8 @@
 
     <owl:ObjectProperty rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isBaseOf">
         <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isIngredientOf"/>
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaBase"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
     </owl:ObjectProperty>
     
 
@@ -66,10 +68,22 @@
     
 
 
+    <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isLike -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isLike">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isToppingOf -->
 
     <owl:ObjectProperty rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isToppingOf">
         <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isIngredientOf"/>
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaTopping"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
     </owl:ObjectProperty>
     
 
@@ -594,10 +608,21 @@
     
 
 
+    <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaHotPizza1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaHotPizza1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaHotPizza"/>
+        <untitled-ontology-18:isLike rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#SohoPizza1"/>
+        <untitled-ontology-18:hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">800</untitled-ontology-18:hasCaloricContent>
+    </owl:NamedIndividual>
+    
+
+
     <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaPizza1 -->
 
     <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaPizza1">
         <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaPizza"/>
+        <untitled-ontology-18:isLike rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#AmericanaHotPizza1"/>
         <untitled-ontology-18:hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">723</untitled-ontology-18:hasCaloricContent>
     </owl:NamedIndividual>
     
@@ -608,6 +633,15 @@
     <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#MargheritaPizza1">
         <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#MargheritaPizza"/>
         <untitled-ontology-18:hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">263</untitled-ontology-18:hasCaloricContent>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#SohoPizza1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#SohoPizza1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#SohoPizza"/>
+        <untitled-ontology-18:hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">300</untitled-ontology-18:hasCaloricContent>
     </owl:NamedIndividual>
     
 
