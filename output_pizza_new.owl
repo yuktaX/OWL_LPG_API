@@ -21,6 +21,8 @@
 
 <owl:ObjectProperty rdf:about="#isBaseOf">
   <rdfs:subPropertyOf rdf:resource="#isIngredientOf"/>
+  <rdfs:domain rdf:resource="#PizzaBase"/>
+  <rdfs:range rdf:resource="#Pizza"/>
 </owl:ObjectProperty>
 
 <owl:ObjectProperty rdf:about="#isIngredientOf"/>
@@ -34,6 +36,8 @@
 
 <owl:ObjectProperty rdf:about="#isToppingOf">
   <rdfs:subPropertyOf rdf:resource="#isIngredientOf"/>
+  <rdfs:domain rdf:resource="#PizzaTopping"/>
+  <rdfs:range rdf:resource="#Pizza"/>
 </owl:ObjectProperty>
 
 <owl:DatatypeProperty rdf:about="#hasCaloricContent">
@@ -364,8 +368,8 @@
     </owl:Restriction>
   </rdfs:subClassOf>
   <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
-  <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
   <rdfs:subClassOf rdf:resource="#VegetarianPizza"/>
+  <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, Olive and Parmesan toppings.</rdfs:comment>
 </owl:Class>
 

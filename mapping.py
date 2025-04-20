@@ -10,11 +10,35 @@ from rdflib.namespace import RDF, RDFS, OWL
 from rdflib.term import Literal
 
 username = "neo4j"  #put your own neo4j username here
-password = "12345"  #put your own password here
+password = "neo4j_kt"  #put your own password here
 format = "xml"
 
+class Reasoner:
+   
+   def __init__(self, filepath, output_filepath):
+      self.filepath = filepath
+      self.format = "xml"
+      self.output_filepath = output_filepath
+      self.onto = get_ontology(self.filepath).load()
+      self.rdf_graph = self.load_owl(self.filepath)
+      
+   
+   def load_owl(self, filename):
+      rdf_graph = rdflib.Graph()
+      rdf_graph.parse(filename, format=self.format)
+      return rdf_graph
+         
+   def run_reasoner(self):
+      with self.onto:
+         sync_reasoner()
+   
+   def save_ontology(self):
+      self.onto.save(file=self.output_filepath, format="rdfxml")
+      print(f"Ontology saved to {self.output_filepath}")
+
+
 class Mapper:
-   def __init__(self, username, password, filename,format="xml"):
+   def __init__(self, username, password, filename, format="xml"):
       self.username = username
       self.password = password
       self.format = format
@@ -30,6 +54,7 @@ class Mapper:
       rdf_graph = rdflib.Graph()
       rdf_graph.parse(self.filename, format=self.format)
       return rdf_graph
+   
     
    def extract_local_name(self,uri):
       uri = str(uri)
@@ -83,13 +108,27 @@ class Mapper:
             else:
                print(f"Skipping subclass relation: {subclass} ⊆ {superclass} (invalid superclass)")
 
+   def recAddSubClass(self,subcls,domain_classes):
+      domain_classes.append(subcls)
+      for cls in list(subcls.subclasses()):
+         self.recAddSubClass(cls,domain_classes)
+
+   def recAddSuperClass(self,supercls,range_classes):
+      range_classes.append(supercls)
+      for cls in list(supercls.is_a):
+         if isinstance(cls, ThingClass) and cls != supercls and not cls.name == 'Thing':
+            self.recAddSuperClass(cls,range_classes)
+
    def process_object_properties(self,nodes):
       for prop in self.onto.object_properties():
          # Extract the property name
          prop_name = prop.name
+
          # Iterate through the domain and range of the object property
          for domain_class in prop.domain:
             for range_class in prop.range:
+
+               domain_classes = []
                # Extract the local names for range class
                
                range_name = self.extract_local_name(range_class.iri)
@@ -97,89 +136,104 @@ class Mapper:
                range_node = nodes.get(range_class.iri)
                if not range_node:
                      range_node = Node("Class", name=range_name)
-                     self.neo4j_graph.create(range_node)
+                     self.neo4j_graph.merge(range_node)
                      nodes[range_class.iri] = range_node  # Add to nodes dictionary
                domain_classes = list(domain_class.subclasses())  # make a copy
                if domain_class not in domain_classes:
                      domain_classes.append(domain_class)
-   
-               for cls in domain_classes:
-                     if isinstance(cls,Restriction) or cls != domain_class:    #remove the cls != domain_class if you want all sub classes to also be considered
-                        continue
-                     cls_name = self.extract_local_name(cls.iri)
-                     # Fetch or create the domain class node
-                     cls_node = nodes.get(cls.iri)
-                     if not cls_node:
-                        cls_node = Node("Class", name=cls_name)
-                        self.neo4j_graph.create(cls_node)
-                        nodes[cls.iri] = cls_node  # Add to nodes dictionary
+               
+               #recursively get the subclass tree and add to a the list domain_classes
+               self.recAddSubClass(domain_class,domain_classes)
+
+               range_classes = []
+               range_classes.append(range_class)
+               self.recAddSuperClass(range_class,range_classes)
+
+
+               for d_cls in domain_classes:
+                     for r_cls in range_classes:
                         
-                     # Create a relationship between the domain (or domain subclass) and range using the property name
-                     rel = Relationship(cls_node, prop_name.upper(), range_node)
-                     self.neo4j_graph.create(rel)
-                     
-                     # print(f"Creating Relationship: {cls_node} --{prop_name.upper()}--> {range_name}")
-                     for ancestor_prop in prop.is_a:
-                        if isinstance(ancestor_prop, ObjectPropertyClass) and ancestor_prop != prop:
-                           rel_name = ancestor_prop.name
-                           relationship = Relationship(cls_node, rel_name.upper(), range_node)
-                           # print(f"Creating inferred relationship: {cls.name} --{rel_name}--> {range_class.name}")
-                           self.neo4j_graph.merge(relationship)
-                              
-   def process_individuals(self, nodes):
-      
-         for individual in self.onto.individuals():
-               # Extract the local name of the individual (excluding the URI base)
-               individual_name = self.extract_local_name(individual.iri)
+                        if isinstance(d_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
+                           continue
+                        d_cls_name = self.extract_local_name(d_cls.iri)
+                        # Fetch or create the domain class node
+                        d_cls_node = nodes.get(d_cls.iri)
+                        if not d_cls_node:
+                           d_cls_node = Node("Class", name=d_cls_name)
+                           self.neo4j_graph.merge(d_cls_node)
+                           nodes[d_cls.iri] = d_cls_node  # Add to nodes dictionary
 
-               # Create a Neo4j node for this individual
-               individual_node = Node("Individual", name=individual_name)
-
-               # Add to Neo4j graph (create if not exists)
-               self.neo4j_graph.create(individual_node)
-
-               # Find the class the individual is an instance of (i.e., the class it belongs to)
-               for cls in individual.is_a:
-                  if cls in self.onto.classes():  # Ensure the class is valid
-                     # Extract the class name and create a relationship between individual and class
-                     class_name = self.extract_local_name(cls.iri)
-
-                     # Fetch or create the class node
-                     class_node = nodes.get(cls.iri)  # Using the existing node for the class
-                     if not class_node:
-                           class_node = Node("Class", name=class_name)
-                           self.neo4j_graph.create(class_node)
-                           nodes[cls.iri] = class_node  # Add to nodes dictionary
-
-                     # Create a relationship between the individual and the class (e.g., "INSTANCE_OF")
-                     rel = Relationship(individual_node, "INSTANCE_OF", class_node)
-                     self.neo4j_graph.merge(rel)
-                     print(f"Creating INSTANCE_OF: {individual_name} --> {class_name}")
-
-                  # Process relationships between individuals
-                  inferred_properties = list(self.onto.world.sparql(f"""SELECT ?p WHERE {{<{individual.iri}> ?p ?o .}}"""))
-                  print(inferred_properties)
-                  for property in inferred_properties:
-                     prop_iri = property[0]
-                     if isinstance(prop_iri, URIRef):  # Ensure it's a valid property URI
-                        prop_name = self.extract_local_name(prop_iri)
-                        inferred_targets = list(self.onto.world.sparql(f"""SELECT ?o WHERE {{<{individual.iri}> <{prop_iri}> ?o .}}"""))
-                        for target in inferred_targets:
+                        if isinstance(r_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
+                           continue
+                        r_cls_name = self.extract_local_name(r_cls.iri)
+                        # Fetch or create the domain class node
+                        r_cls_node = nodes.get(r_cls.iri)
+                        if not r_cls_node:
+                           r_cls_node = Node("Class", name=r_cls_name)
+                           self.neo4j_graph.create(r_cls_node)
+                           nodes[r_cls.iri] = r_cls_node  # Add to nodes dictionary
                            
-                           target_iri = target[0]
-                           if isinstance(target_iri, URIRef):  # Ensure the target is a valid URI
-                              target_name = self.extract_local_name(target_iri)
+                        # Create a relationship between the domain (or domain subclass) and range using the property name
+                        rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
+                        self.neo4j_graph.create(rel)
+                        
+                        # print(f"Creating Relationship: {cls_node} --{prop_name.upper()}--> {range_name}")
+                        for ancestor_prop in prop.is_a:
+                           if isinstance(ancestor_prop, ObjectPropertyClass) and ancestor_prop != prop:
+                              rel_name = ancestor_prop.name
+                              relationship = Relationship(d_cls_node, rel_name.upper(), r_cls_node)
+                              # print(f"Creating inferred relationship: {cls.name} --{rel_name}--> {range_class.name}")
+                              self.neo4j_graph.merge(relationship)
+               
+               
+         #go through all the instances, check what their parents are and assign all object propeties of their parents to the instance
+         for indi in self.onto.individuals():
 
-                              # Fetch or create the target individual node
-                              target_node = Node("Individual", name=target_name)
-                              self.neo4j_graph.merge(target_node, "Individual", "name")
+            individual_name = self.extract_local_name(indi.iri)
+            print("indi name")
+            print(individual_name)
 
-                              # Create a relationship between the individuals
-                              rel = Relationship(individual_node, prop_name.upper(), target_node)
-                              self.neo4j_graph.merge(rel)
-                              print(f"Creating Relationship: {individual_name} --{prop_name.upper()}--> {target_name}")
+            individual_node = nodes.get(indi.iri)
+            if not individual_node:
+               individual_node = Node("Individual", name=individual_name)
+               self.neo4j_graph.create(individual_node)
+               nodes[indi.iri] = individual_node  # Add to nodes dictionary
+
+            instance_rel = list(self.neo4j_graph.match((individual_node,), r_type="INSTANCE_OF"))
+            for rel in instance_rel:
+                  print("--------------------in---------------------------------------")
+                  class_node = rel.end_node  # This is the class the individual belongs tocreate
+                  print(class_node)
+
+                  # Now, fetch all *outgoing* relationships from the class node (except INSTANCE_OF)
+                  class_rels = self.neo4j_graph.match((class_node,), r_type=None)
+                  for class_rel in class_rels:
+                     print("class_rel.__class__.__name__")
+                     print(class_rel.__class__.__name__)
+                     if class_rel.__class__.__name__ == "Relationship":
+                        continue
+                     if class_rel.__class__ == Relationship:
+                        continue
+                     if class_rel.type == "INSTANCE_OF":
+                        continue  # Skip INSTANCE_OF
+                     
+                     if class_rel.__class__.__name__ == "HASTOPPING":
+                         print()
+                         print("HASTOPPING yeah")
+                         print(class_rel.end_node['name'])
+                         print()
+                     print("class_rel")
+                     print(class_rel.end_node)
+                     # Copy the same relationship to the individual node
+                     new_rel = Relationship(individual_node, class_rel.__class__.__name__, class_rel.end_node)
+                     self.neo4j_graph.merge(new_rel)
+                     print(f"Copied relationship: {individual_node['name']} --{class_rel.__class__.__name__}--> {class_rel.end_node['name']}")
+                   
+               
+              
+   
        
-   def process_equivalent_class_intersections(self):
+   def process_equivalent_class_intersections(self,nodes):
       for cls in self.onto.classes():
          for eq in cls.equivalent_to:
                if isinstance(eq, And):
@@ -223,10 +277,28 @@ class Mapper:
 
                               self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
 
-                              # Optional shortcut for querying
-                              self.neo4j_graph.create(Relationship(start_node,
-                                                                  f"{prop_name.upper()}_SOME",
+                              # # Optional shortcut for querying
+                              # self.neo4j_graph.create(Relationship(start_node,
+                              #                                     f"{prop_name.upper()}",
+                              #                                     filler_node))
+                              subclasses = []
+                              self.recAddSubClass(cls,subclasses)
+
+                              for cls in subclasses:
+                                 cls_name = self.extract_local_name(cls.iri)
+                                 
+                                 cls_node = nodes.get(cls.iri)
+                                 if not cls_node:
+                                    cls_node = Node("Class", name=cls_name)
+                                    self.neo4j_graph.merge(cls_node,"Class","name")
+                                    nodes[cls.iri] = cls_node
+                                 self.neo4j_graph.create(Relationship(cls_node,
+                                                                  f"{prop_name.upper()}",
                                                                   filler_node))
+
+
+
+
                            elif isinstance(filler, ConstrainedDatatype):
                               filler_node = Node("Datatype", name=str(filler))
                               self.neo4j_graph.merge(filler_node,"Class","name")
@@ -239,12 +311,16 @@ class Mapper:
 
                            # Optional shortcut
                            self.neo4j_graph.merge(Relationship(start_node,
-                                                   f"{prop_name.upper()}_SOME",
+                                                   f"{prop_name.upper()}",
                                                    filler_node))
+                           
+
+                           
                            
    def process_inverse_object_properties(self, nodes):
       for prop in self.onto.object_properties():
          # Check if the property has an inverse
+
          if prop.inverse_property:
             inverse_prop = prop.inverse_property
             inverse_name = inverse_prop.name
@@ -313,7 +389,56 @@ class Mapper:
                      rel = Relationship(domain_node, superprop_name.upper(), range_node)
                      self.neo4j_graph.merge(rel)
                      print(f"Creating SUBPROPERTY_OF Relationship: {domain_name} --{superprop_name.upper()}--> {range_name}")
-      
+   
+   def process_individuals(self, nodes):
+    for individual in self.onto.individuals():
+        # Extract the local name of the individual
+        individual_name = self.extract_local_name(individual.iri)
+
+        # Create a Neo4j node for this individual
+      #   individual_node = Node("Individual", name=individual_name)
+        individual_node = nodes.get(individual.iri)
+        if not individual_node:
+            individual_node = Node("Individual", name=individual_name)
+            self.neo4j_graph.create(individual_node)
+            nodes[individual.iri] = individual_node  # Add to nodes dictionary
+
+      #   self.neo4j_graph.merge(individual_node, "Individual", "name")
+
+        # Attach INSTANCE_OF relationship to class
+        for cls in individual.is_a:
+            if cls in self.onto.classes():
+                class_name = self.extract_local_name(cls.iri)
+
+                # Use or create class node
+                class_node = nodes.get(cls.iri)
+                if not class_node:
+                    class_node = Node("Class", name=class_name)
+                    self.neo4j_graph.merge(class_node, "Class", "name")
+                    nodes[cls.iri] = class_node
+
+                # Create INSTANCE_OF relationship
+                rel = Relationship(individual_node, "INSTANCE_OF", class_node)
+                self.neo4j_graph.merge(rel)
+                print(f"Creating INSTANCE_OF: {individual_name} --> {class_name}")
+
+        # Process properties (object and data)
+        for prop in individual.get_properties():
+            for value in prop[individual]:
+                if isinstance(value, Thing):  # Object property
+                    target_name = self.extract_local_name(value.iri)
+                    target_node = Node("Individual", name=target_name)
+                    self.neo4j_graph.merge(target_node, "Individual", "name")
+
+                    rel = Relationship(individual_node, prop.name.upper(), target_node)
+                    self.neo4j_graph.merge(rel)
+                    print(f"Creating object property: {individual_name} --{prop.name.upper()}--> {target_name}")
+
+                elif isinstance(value, (str, int, float, bool)):  # Data property
+                    individual_node[prop.name] = value
+                    self.neo4j_graph.push(individual_node)
+
+
    def map_owl_to_lpg(self):
       # Connect to Neo4j and clear the database
       self.connect_neo4j()
@@ -327,28 +452,29 @@ class Mapper:
       
       # Step 2: Process Subclass Relationships
       self.process_subclass_relationships(nodes)
-      
-      # Step 3: Process Object Properties (Relationships)
-      self.process_object_properties(nodes)
-            
-      # Step 4: Process Individuals and Create Nodes
+
+      # Step 7: Process individuals
       self.process_individuals(nodes)
 
-      # Step 5: Process equivalent classes
-      self.process_equivalent_class_intersections()
+      # Step 3: Process Object Properties (Relationships)
+      self.process_object_properties(nodes)
+
+      # Step 4: Process equivalent classes
+      self.process_equivalent_class_intersections(nodes)
       
-      # Step 6: Process inverse object properties
+      # Step 5: Process inverse object properties
       self.process_inverse_object_properties(nodes)
       
-      # Step 7: Process object subproperties
+      # Step 6: Process object subproperties
       self.process_object_subproperties(nodes)
+
+      
+
+      
 
       print("OWL to LPG Conversion Complete!")
 
-
 filename = "output_pizza_new.owl"
-# test = Mapper(username, password, "PizzaOntology.rdf", format)
-# test = Mapper(username, password, "example4.owl", format)
 test = Mapper(username, password, filename, format)
 test.map_owl_to_lpg()
 
