@@ -1,5 +1,5 @@
 import reasoning_save
-import mapping
+import Mapper
 
 inferred_onto_path = "inferred_ontology_save_3.owl"
 
@@ -14,11 +14,11 @@ def main():
 
         if choice == "1":
             filename = input("Enter the .owl filename: ")
-            mapping.mapOWLtoLPG(filename)
+            Mapper.mapOWLtoLPG(filename)
             
         elif choice == "2":
             reasoning_save.reasoning_function(inferred_onto_path)
-            mapping.mapOWLtoLPG(inferred_onto_path)
+            Mapper.mapOWLtoLPG(inferred_onto_path)
             
         elif choice == "3":
             print("Exiting program.")

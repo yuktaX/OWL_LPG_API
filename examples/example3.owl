@@ -4,7 +4,7 @@
      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
      xmlns:owl="http://www.w3.org/2002/07/owl#"
-     xmlns:ns1="http://example.org/ontology#">
+     xmlns:ns1="http://example.org/ontology/">
 
     <owl:Ontology rdf:about="http://example.org/ontology"/>
 
@@ -41,12 +41,12 @@
     <!-- Individuals -->
     <owl:NamedIndividual rdf:about="http://example.org/ontology/Alice">
         <rdf:type rdf:resource="http://example.org/ontology/ComputerScienceStudent"/>
-        <ns1:livesIn rdf:resource="http://example.org/ontology/NewYork" />
+        <livesIn rdf:resource="http://example.org/ontology/NewYork" />
     </owl:NamedIndividual>
 
     <owl:NamedIndividual rdf:about="http://example.org/ontology/NewYork">
         <rdf:type rdf:resource="http://example.org/ontology/Metropolis"/>
-        <ns1:locatedIn rdf:resource="http://example.org/ontology/USA"/>
+        <locatedIn rdf:resource="http://example.org/ontology/USA"/>
     </owl:NamedIndividual>
 
     <owl:NamedIndividual rdf:about="http://example.org/ontology/USA">

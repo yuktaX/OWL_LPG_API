@@ -1,77 +1,24 @@
-import rdflib
-import logging
-from rdflib import URIRef
-# from owlready2 import get_ontology, ObjectPropertyClass,DataPropertyClass,Restriction,ThingClass
 from owlready2 import *
-
-# logging.basicConfig(level=logging.DEBUG)
 from py2neo import Graph as NeoGraph, Node, Relationship
-from rdflib.namespace import RDF, RDFS, OWL
-from rdflib.term import Literal
+from Connector import Connector
+from OWLhelper import OWLhelper
+import os
+from dotenv import load_dotenv
 
-username = "neo4j"  #put your own neo4j username here
-password = "neo4j_kt"  #put your own password here
-format = "xml"
-
-class Reasoner:
-   
-   def __init__(self, filepath, output_filepath):
-      self.filepath = filepath
-      self.format = "xml"
-      self.output_filepath = output_filepath
-      self.onto = get_ontology(self.filepath).load()
-      self.rdf_graph = self.load_owl(self.filepath)
-      
-   
-   def load_owl(self, filename):
-      rdf_graph = rdflib.Graph()
-      rdf_graph.parse(filename, format=self.format)
-      return rdf_graph
-         
-   def run_reasoner(self):
-      with self.onto:
-         sync_reasoner()
-   
-   def save_ontology(self):
-      self.onto.save(file=self.output_filepath, format="rdfxml")
-      print(f"Ontology saved to {self.output_filepath}")
-
+# Load environment variables from .env file
+load_dotenv()
 
 class Mapper:
-   def __init__(self, username, password, filename, format="xml"):
-      self.username = username
-      self.password = password
-      self.format = format
-      self.neo4j_graph = None
-      self.filename = filename
-      self.onto = get_ontology(filename).load()
+   def __init__(self, neo4j_graph, filename, format):
 
-   def connect_neo4j(self):
-      self.neo4j_graph = NeoGraph("bolt://localhost:7687", auth=(self.username, self.password))
-      return self.neo4j_graph
-
-   def load_owl(self):
-      rdf_graph = rdflib.Graph()
-      rdf_graph.parse(self.filename, format=self.format)
-      return rdf_graph
-   
-    
-   def extract_local_name(self,uri):
-      uri = str(uri)
-      if "#" in uri:
-          return uri.split("#")[-1]
-      elif "/" in uri:
-          return uri.split("/")[-1]
-      elif ":" in uri:
-          return uri.split(":")[-1]
-      else:
-          return uri
-    
+      self.neo4j_graph = neo4j_graph
+      self.owl_helper = OWLhelper(filename, format)
+      self.onto = self.owl_helper.load_owl_ontology()
 
    def process_classes(self,nodes):
       for cls in self.onto.classes():
          # Extract the local name of the class (excluding the URI base)
-         class_name = self.extract_local_name(cls.iri)
+         class_name = self.owl_helper.extract_local_name(cls.iri)
          
          # Create a Neo4j node for this class
          class_node = Node("Class", name=class_name)
@@ -87,8 +34,8 @@ class Mapper:
          for superclass in subclass.is_a:
             if superclass in self.onto.classes():  # Ensure the superclass is a valid class
                # Extract the local names of the subclass and superclass
-               subclass_name = self.extract_local_name(subclass.iri)
-               superclass_name = self.extract_local_name(superclass.iri)
+               subclass_name = self.owl_helper.extract_local_name(subclass.iri)
+               superclass_name = self.owl_helper.extract_local_name(superclass.iri)
                # Fetch or create the nodes for subclass and superclass
                subclass_node = nodes.get(subclass.iri)  # Using the existing node for the subclass
                superclass_node = nodes.get(superclass.iri)  # Using the existing node for the superclass
@@ -108,16 +55,6 @@ class Mapper:
             else:
                print(f"Skipping subclass relation: {subclass} ⊆ {superclass} (invalid superclass)")
 
-   def recAddSubClass(self,subcls,domain_classes):
-      domain_classes.append(subcls)
-      for cls in list(subcls.subclasses()):
-         self.recAddSubClass(cls,domain_classes)
-
-   def recAddSuperClass(self,supercls,range_classes):
-      range_classes.append(supercls)
-      for cls in list(supercls.is_a):
-         if isinstance(cls, ThingClass) and cls != supercls and not cls.name == 'Thing':
-            self.recAddSuperClass(cls,range_classes)
 
    def process_object_properties(self,nodes):
       for prop in self.onto.object_properties():
@@ -131,7 +68,7 @@ class Mapper:
                domain_classes = []
                # Extract the local names for range class
                
-               range_name = self.extract_local_name(range_class.iri)
+               range_name = self.owl_helper.extract_local_name(range_class.iri)
                # Fetch or create the range class node
                range_node = nodes.get(range_class.iri)
                if not range_node:
@@ -143,11 +80,11 @@ class Mapper:
                      domain_classes.append(domain_class)
                
                #recursively get the subclass tree and add to a the list domain_classes
-               self.recAddSubClass(domain_class,domain_classes)
+               self.owl_helper.recAddSubClass(domain_class,domain_classes)
 
                range_classes = []
                range_classes.append(range_class)
-               self.recAddSuperClass(range_class,range_classes)
+               self.owl_helper.recAddSuperClass(range_class,range_classes)
 
 
                for d_cls in domain_classes:
@@ -155,7 +92,7 @@ class Mapper:
                         
                         if isinstance(d_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
                            continue
-                        d_cls_name = self.extract_local_name(d_cls.iri)
+                        d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
                         # Fetch or create the domain class node
                         d_cls_node = nodes.get(d_cls.iri)
                         if not d_cls_node:
@@ -165,7 +102,7 @@ class Mapper:
 
                         if isinstance(r_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
                            continue
-                        r_cls_name = self.extract_local_name(r_cls.iri)
+                        r_cls_name = self.owl_helper.extract_local_name(r_cls.iri)
                         # Fetch or create the domain class node
                         r_cls_node = nodes.get(r_cls.iri)
                         if not r_cls_node:
@@ -189,7 +126,7 @@ class Mapper:
          #go through all the instances, check what their parents are and assign all object propeties of their parents to the instance
          for indi in self.onto.individuals():
 
-            individual_name = self.extract_local_name(indi.iri)
+            individual_name = self.owl_helper.extract_local_name(indi.iri)
             print("indi name")
             print(individual_name)
 
@@ -230,9 +167,6 @@ class Mapper:
                      print(f"Copied relationship: {individual_node['name']} --{class_rel.__class__.__name__}--> {class_rel.end_node['name']}")
                    
                
-              
-   
-       
    def process_equivalent_class_intersections(self,nodes):
       for cls in self.onto.classes():
          for eq in cls.equivalent_to:
@@ -240,8 +174,8 @@ class Mapper:
                   for part in eq.Classes:
                      if isinstance(part, ThingClass):
                            # It's a base class (like Pizza)
-                           start_node = Node("Class", name=self.extract_local_name(cls.iri))
-                           end_node = Node("Class", name=self.extract_local_name(part.iri))
+                           start_node = Node("Class", name=self.owl_helper.extract_local_name(cls.iri))
+                           end_node = Node("Class", name=self.owl_helper.extract_local_name(part.iri))
                            self.neo4j_graph.merge(start_node,"Class","name")
                            self.neo4j_graph.merge(end_node,"Class","name")
 
@@ -257,7 +191,7 @@ class Mapper:
                            restriction_node = Node("Restriction", type="some", id=restriction_id)
                            self.neo4j_graph.merge(restriction_node, "Restriction", "id")
 
-                           start_node = Node("Class", name=self.extract_local_name(cls.iri))
+                           start_node = Node("Class", name=self.owl_helper.extract_local_name(cls.iri))
                            self.neo4j_graph.merge(start_node, "Class", "name")
 
                            # From class to restriction
@@ -272,7 +206,7 @@ class Mapper:
 
                            # Filler class (e.g., CheeseTopping)
                            if isinstance(filler, ThingClass):
-                              filler_node = Node("Class", name=self.extract_local_name(filler.iri))
+                              filler_node = Node("Class", name=self.owl_helper.extract_local_name(filler.iri))
                               self.neo4j_graph.merge(filler_node,"Class","name")
 
                               self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
@@ -282,10 +216,10 @@ class Mapper:
                               #                                     f"{prop_name.upper()}",
                               #                                     filler_node))
                               subclasses = []
-                              self.recAddSubClass(cls,subclasses)
+                              self.owl_helper.recAddSubClass(cls,subclasses)
 
                               for cls in subclasses:
-                                 cls_name = self.extract_local_name(cls.iri)
+                                 cls_name = self.owl_helper.extract_local_name(cls.iri)
                                  
                                  cls_node = nodes.get(cls.iri)
                                  if not cls_node:
@@ -295,9 +229,6 @@ class Mapper:
                                  self.neo4j_graph.create(Relationship(cls_node,
                                                                   f"{prop_name.upper()}",
                                                                   filler_node))
-
-
-
 
                            elif isinstance(filler, ConstrainedDatatype):
                               filler_node = Node("Datatype", name=str(filler))
@@ -333,8 +264,8 @@ class Mapper:
          for domain_class in prop.domain:
             for range_class in prop.range:
             # Extract the local names for domain and range classes
-               domain_name = self.extract_local_name(domain_class.iri)
-               range_name = self.extract_local_name(range_class.iri)
+               domain_name = self.owl_helper.extract_local_name(domain_class.iri)
+               range_name = self.owl_helper.extract_local_name(range_class.iri)
 
                # Fetch or create the domain and range class nodes
                domain_node = nodes.get(domain_class.iri)
@@ -367,8 +298,8 @@ class Mapper:
                for domain_class in prop.domain:
                   for range_class in prop.range:
                      # Extract the local names for domain and range classes
-                     domain_name = self.extract_local_name(domain_class.iri)
-                     range_name = self.extract_local_name(range_class.iri)
+                     domain_name = self.owl_helper.extract_local_name(domain_class.iri)
+                     range_name = self.owl_helper.extract_local_name(range_class.iri)
                      
                      # print(domain_name, range_name)
 
@@ -393,7 +324,7 @@ class Mapper:
    def process_individuals(self, nodes):
     for individual in self.onto.individuals():
         # Extract the local name of the individual
-        individual_name = self.extract_local_name(individual.iri)
+        individual_name = self.owl_helper.extract_local_name(individual.iri)
 
         # Create a Neo4j node for this individual
       #   individual_node = Node("Individual", name=individual_name)
@@ -408,7 +339,7 @@ class Mapper:
         # Attach INSTANCE_OF relationship to class
         for cls in individual.is_a:
             if cls in self.onto.classes():
-                class_name = self.extract_local_name(cls.iri)
+                class_name = self.owl_helper.extract_local_name(cls.iri)
 
                 # Use or create class node
                 class_node = nodes.get(cls.iri)
@@ -426,7 +357,7 @@ class Mapper:
         for prop in individual.get_properties():
             for value in prop[individual]:
                 if isinstance(value, Thing):  # Object property
-                    target_name = self.extract_local_name(value.iri)
+                    target_name = self.owl_helper.extract_local_name(value.iri)
                     target_node = Node("Individual", name=target_name)
                     self.neo4j_graph.merge(target_node, "Individual", "name")
 
@@ -440,9 +371,6 @@ class Mapper:
 
 
    def map_owl_to_lpg(self):
-      # Connect to Neo4j and clear the database
-      self.connect_neo4j()
-      self.neo4j_graph.delete_all()
 
       # Store nodes for individuals and classes
       nodes = {}
@@ -468,14 +396,28 @@ class Mapper:
       # Step 6: Process object subproperties
       self.process_object_subproperties(nodes)
 
-      
-
-      
-
       print("OWL to LPG Conversion Complete!")
+      
 
-filename = "output_pizza_new.owl"
-test = Mapper(username, password, filename, format)
+
+# Retrieve environment variables
+username = os.getenv("USERNAME_1")
+password = os.getenv("PASSWORD")
+
+
+# Check if variables are loaded correctly
+if not username or not password:
+    raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
+
+format = "xml"
+
+connection = Connector(username, password)
+neo4j_graph = connection.connect_neo4j()
+
+filename = "examples/example4.owl"
+
+test = Mapper(neo4j_graph, filename, format)
+
 test.map_owl_to_lpg()
 
 

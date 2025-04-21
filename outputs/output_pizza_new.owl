@@ -21,6 +21,8 @@
 
 <owl:ObjectProperty rdf:about="#isBaseOf">
   <rdfs:subPropertyOf rdf:resource="#isIngredientOf"/>
+  <rdfs:domain rdf:resource="#PizzaBase"/>
+  <rdfs:range rdf:resource="#Pizza"/>
 </owl:ObjectProperty>
 
 <owl:ObjectProperty rdf:about="#isIngredientOf"/>
@@ -34,6 +36,14 @@
 
 <owl:ObjectProperty rdf:about="#isToppingOf">
   <rdfs:subPropertyOf rdf:resource="#isIngredientOf"/>
+  <rdfs:domain rdf:resource="#PizzaTopping"/>
+  <rdfs:range rdf:resource="#Pizza"/>
+</owl:ObjectProperty>
+
+<owl:ObjectProperty rdf:about="#isLike">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
+  <rdfs:domain rdf:resource="#Pizza"/>
+  <rdfs:range rdf:resource="#Pizza"/>
 </owl:ObjectProperty>
 
 <owl:DatatypeProperty rdf:about="#hasCaloricContent">
@@ -81,8 +91,8 @@
       <owl:someValuesFrom rdf:resource="#TomatoTopping"/>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, Pepperoni and Jalapeno toppings.</rdfs:comment>
 </owl:Class>
 
@@ -127,8 +137,8 @@
       <owl:someValuesFrom rdf:resource="#TomatoTopping"/>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, and Pepperoni toppings.</rdfs:comment>
 </owl:Class>
 
@@ -363,8 +373,8 @@
       </owl:allValuesFrom>
     </owl:Restriction>
   </rdfs:subClassOf>
-  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#InterestingPizza"/>
+  <rdfs:subClassOf rdf:resource="#CheesyPizza"/>
   <rdfs:subClassOf rdf:resource="#VegetarianPizza"/>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A pizza that only has Mozzarella, Tomato, Olive and Parmesan toppings.</rdfs:comment>
 </owl:Class>
@@ -399,8 +409,22 @@
   <rdfs:subClassOf rdf:resource="#Pizza"/>
 </owl:Class>
 
+<owl:NamedIndividual rdf:about="#AmericanaHotPizza1">
+  <rdf:type rdf:resource="#AmericanaHotPizza"/>
+  <isLike rdf:resource="#SohoPizza1"/>
+  <rdf:type rdf:resource="#HighCaloriePizza"/>
+  <hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">800</hasCaloricContent>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#SohoPizza1">
+  <rdf:type rdf:resource="#SohoPizza"/>
+  <rdf:type rdf:resource="#LowCaloriePizza"/>
+  <hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">300</hasCaloricContent>
+</owl:NamedIndividual>
+
 <owl:NamedIndividual rdf:about="#AmericanaPizza1">
   <rdf:type rdf:resource="#AmericanaPizza"/>
+  <isLike rdf:resource="#AmericanaHotPizza1"/>
   <rdf:type rdf:resource="#HighCaloriePizza"/>
   <hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">723</hasCaloricContent>
 </owl:NamedIndividual>
