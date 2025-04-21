@@ -10,7 +10,7 @@ from rdflib.namespace import RDF, RDFS, OWL
 from rdflib.term import Literal
 
 username = "neo4j"  #put your own neo4j username here
-password = "neo4j_kt"  #put your own password here
+password = "neo4j_nt"  #put your own password here
 format = "xml"
 
 class Reasoner:
@@ -196,7 +196,7 @@ class Mapper:
             individual_node = nodes.get(indi.iri)
             if not individual_node:
                individual_node = Node("Individual", name=individual_name)
-               self.neo4j_graph.create(individual_node)
+               self.neo4j_graph.merge(individual_node)
                nodes[indi.iri] = individual_node  # Add to nodes dictionary
 
             instance_rel = list(self.neo4j_graph.match((individual_node,), r_type="INSTANCE_OF"))
@@ -427,8 +427,11 @@ class Mapper:
             for value in prop[individual]:
                 if isinstance(value, Thing):  # Object property
                     target_name = self.extract_local_name(value.iri)
-                    target_node = Node("Individual", name=target_name)
-                    self.neo4j_graph.merge(target_node, "Individual", "name")
+                    target_node = nodes.get(value.iri)
+                    if not target_node:
+                       target_node = Node("Individual", name=target_name)
+                       self.neo4j_graph.merge(target_node, "Individual", "name")
+                       nodes[value.iri] = target_node
 
                     rel = Relationship(individual_node, prop.name.upper(), target_node)
                     self.neo4j_graph.merge(rel)
@@ -438,6 +441,38 @@ class Mapper:
                     individual_node[prop.name] = value
                     self.neo4j_graph.push(individual_node)
 
+   def process_transitive_properties(self, nodes):
+      for individual in self.onto.individuals():
+         for prop in self.onto.object_properties():
+            indirect_prop_name = f"INDIRECT_{prop.name}"
+            
+            related_ind = getattr(individual, indirect_prop_name)
+            print(f"Individual name: {individual.name}, Property name: {prop.name}")
+
+            if not related_ind == []:
+               print(related_ind)
+
+               ind_name = self.extract_local_name(individual.iri)
+               # Fetch or create the range class node
+               ind_node = nodes.get(individual.iri)
+               # if not ind_node:
+               #       print("No ind")
+               #       ind_node = Node("Individual", name=ind_name)
+               #       self.neo4j_graph.merge(ind_node)
+               #       nodes[individual.iri] = ind_node  # Add to nodes dictionary
+               
+               for obj in related_ind:
+                  obj_name = self.extract_local_name(obj.iri)
+                  obj_node = nodes.get(obj.iri)
+                  # if not obj_node:
+                  #    print("No obj")
+                  #    obj_node = Node("Class", name=obj_name)
+                  #    self.neo4j_graph.create(obj_node)
+                  #    nodes[obj.iri] = obj_node  # Add to nodes dictionary
+                  
+                  print("Creating relationship")
+                  rel = Relationship(ind_node, prop.name.upper(), obj_node)
+                  self.neo4j_graph.merge(rel)
 
    def map_owl_to_lpg(self):
       # Connect to Neo4j and clear the database
@@ -453,20 +488,23 @@ class Mapper:
       # Step 2: Process Subclass Relationships
       self.process_subclass_relationships(nodes)
 
-      # Step 7: Process individuals
+      # Step 3: Process individuals
       self.process_individuals(nodes)
 
-      # Step 3: Process Object Properties (Relationships)
+      # Step 4: Process Object Properties (Relationships)
       self.process_object_properties(nodes)
 
-      # Step 4: Process equivalent classes
+      # Step 5: Process equivalent classes
       self.process_equivalent_class_intersections(nodes)
       
-      # Step 5: Process inverse object properties
+      # Step 6: Process inverse object properties
       self.process_inverse_object_properties(nodes)
       
-      # Step 6: Process object subproperties
+      # Step 7: Process object subproperties
       self.process_object_subproperties(nodes)
+
+      # Step 8: Process transitive Properties (Relationships)
+      self.process_transitive_properties(nodes)
 
       
 
