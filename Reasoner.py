@@ -16,7 +16,7 @@ class Reasoner:
       rdf_graph.parse(filename, format=self.format)
       return rdf_graph
          
-   def run_reasoner(self):
+   def run_owlready_reasoner(self):
       with self.onto:
          sync_reasoner()
    
@@ -26,8 +26,8 @@ class Reasoner:
    
 
 # test =  Reasoner("example3.owl", "output_alice.owl")
-test = Reasoner("examples/PizzaOntology.rdf","outputs/output_pizza_new.owl")
-test.run_reasoner()
+test = Reasoner("inputs/animal.owl","outputs/animal.owl")
+test.run_owlready_reasoner()
 print("*******Reasoner finished********")
 test.save_ontology()
 print("*******Ontology saved********")

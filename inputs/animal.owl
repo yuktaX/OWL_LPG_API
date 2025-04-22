@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://example.org/ontology/"
+     xml:base="http://example.org/ontology/"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://example.org/ontology/"/>
+
+    <owl:Class rdf:about="http://example.org/ontology/Animal"/>
+
+    <owl:Class rdf:about="http://example.org/ontology/LivingThing"/>
+
+    <owl:Class rdf:about="http://example.org/ontology/Mammal">
+        <rdfs:subClassOf rdf:resource="http://example.org/ontology/Animal"/>
+    </owl:Class>
+
+    <owl:Class rdf:about="http://example.org/ontology/Dog">
+        <rdfs:subClassOf rdf:resource="http://example.org/ontology/Mammal"/>
+    </owl:Class>
+    
+    <owl:Class rdf:about="http://example.org/ontology/Plant">
+        <rdfs:subClassOf rdf:resource="http://example.org/ontology/LivingThing"/>
+    </owl:Class>
+
+    <owl:ObjectProperty rdf:about="http://example.org/ontology/hasParent">
+        <rdfs:domain rdf:resource="http://example.org/ontology/Animal"/>
+        <rdfs:range rdf:resource="http://example.org/ontology/Animal"/>
+        <owl:inverseOf rdf:resource="http://example.org/ontology/hasChild"/>
+    </owl:ObjectProperty>
+    <owl:ObjectProperty rdf:about="http://example.org/ontology/hasChild">
+        <rdfs:domain rdf:resource="http://example.org/ontology/Animal"/>
+        <rdfs:range rdf:resource="http://example.org/ontology/Animal"/>
+    </owl:ObjectProperty>
+    <owl:ObjectProperty rdf:about="http://example.org/ontology/eats">
+        <rdfs:domain rdf:resource="http://example.org/ontology/Animal"/>
+        <rdfs:range rdf:resource="http://example.org/ontology/LivingThing"/>
+    </owl:ObjectProperty>
+    <owl:ObjectProperty rdf:about="http://example.org/ontology/isEatenBy">
+        <rdfs:domain rdf:resource="http://example.org/ontology/LivingThing"/>
+        <rdfs:range rdf:resource="http://example.org/ontology/Animal"/>
+        <owl:inverseOf rdf:resource="http://example.org/ontology/eats"/>
+    </owl:ObjectProperty>
+
+</rdf:RDF>
