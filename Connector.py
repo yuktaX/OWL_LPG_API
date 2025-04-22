@@ -34,6 +34,6 @@ class Connector:
          raise ConnectionError("Not connected to Neo4j. Call connect_neo4j() first.")
       return self.neo4j_graph.run(query).data()
 
-username = "neo4j"  #put your own neo4j username here
-password = "12345"  #put your own password here
-connection = print(Connector(username, password).connect_neo4j())
+# username = "neo4j"  #put your own neo4j username here
+# password = "12345"  #put your own password here
+# connection = print(Connector(username, password).connect_neo4j())

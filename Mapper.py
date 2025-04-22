@@ -55,7 +55,6 @@ class Mapper:
             else:
                print(f"Skipping subclass relation: {subclass} ⊆ {superclass} (invalid superclass)")
 
-
    def process_object_properties(self,nodes):
       for prop in self.onto.object_properties():
          # Extract the property name
@@ -165,8 +164,7 @@ class Mapper:
                      new_rel = Relationship(individual_node, class_rel.__class__.__name__, class_rel.end_node)
                      self.neo4j_graph.merge(new_rel)
                      print(f"Copied relationship: {individual_node['name']} --{class_rel.__class__.__name__}--> {class_rel.end_node['name']}")
-                   
-               
+
    def process_equivalent_class_intersections(self,nodes):
       for cls in self.onto.classes():
          for eq in cls.equivalent_to:
@@ -232,7 +230,7 @@ class Mapper:
 
                            elif isinstance(filler, ConstrainedDatatype):
                               filler_node = Node("Datatype", name=str(filler))
-                              self.neo4j_graph.merge(filler_node,"Class","name")
+                              self.neo4j_graph.merge(filler_node,"Datatype","name")
                               self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
                               print(f"Handled restriction to datatype: {filler}")
                            else:
@@ -244,10 +242,7 @@ class Mapper:
                            self.neo4j_graph.merge(Relationship(start_node,
                                                    f"{prop_name.upper()}",
                                                    filler_node))
-                           
-
-                           
-                           
+           
    def process_inverse_object_properties(self, nodes):
       for prop in self.onto.object_properties():
          # Check if the property has an inverse
@@ -430,8 +425,6 @@ class Mapper:
 
       print("OWL to LPG Conversion Complete!")
       
-
-
 # Retrieve environment variables
 username = os.getenv("USERNAME_1")
 password = os.getenv("PASSWORD")
@@ -442,11 +435,13 @@ if not username or not password:
     raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
 
 format = "xml"
-
 connection = Connector(username, password)
 neo4j_graph = connection.connect_neo4j()
 
-filename = "examples/example4.owl"
+# filename = "examples/PizzaOntology.rdf"
+# filename = "outputs/output_pizza_new.owl"
+filename = "outputs/animal.owl"
+
 
 test = Mapper(neo4j_graph, filename, format)
 
