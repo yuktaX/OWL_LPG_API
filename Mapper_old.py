@@ -1,7 +1,7 @@
 from owlready2 import *
 from py2neo import Graph as NeoGraph, Node, Relationship
 from Connector import Connector
-from OWLhelper import OWLhelper
+from OWLHelper import OWLhelper
 import os
 from dotenv import load_dotenv
 

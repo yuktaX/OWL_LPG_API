@@ -1,7 +1,7 @@
 from owlready2 import *
 from py2neo import Graph as NeoGraph, Node, Relationship
 from Connector import Connector
-from OWLhelper import OWLhelper
+from OWLHelper import OWLHelper
 import os
 from dotenv import load_dotenv
 
@@ -13,7 +13,7 @@ class Mapper:
    def __init__(self, neo4j_graph, filename, format):
 
       self.neo4j_graph = neo4j_graph
-      self.owl_helper = OWLhelper(filename, format)
+      self.owl_helper = OWLHelper(filename, format)
       self.onto = self.owl_helper.load_owl_ontology()
       self.nodes = {}
 
