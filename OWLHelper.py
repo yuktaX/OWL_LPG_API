@@ -29,10 +29,10 @@ class OWLHelper:
    def rec_add_subclass(self, subcls, domain_classes):
       domain_classes.append(subcls)
       for cls in list(subcls.subclasses()):
-         self.recAddSubClass(cls, domain_classes)
+         self.rec_add_subclass(cls, domain_classes)
          
    def rec_add_superclass(self, supercls, range_classes):
       range_classes.append(supercls)
       for cls in list(supercls.is_a):
          if isinstance(cls, ThingClass) and cls != supercls and not cls.name == 'Thing':
-                        self.recAddSuperClass(cls, range_classes)
+                        self.rec_add_superclass(cls, range_classes)

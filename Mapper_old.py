@@ -1,7 +1,7 @@
 from owlready2 import *
 from py2neo import Graph as NeoGraph, Node, Relationship
 from Connector import Connector
-from OWLHelper import OWLhelper
+from OWLHelper import OWLHelper
 import os
 from dotenv import load_dotenv
 
@@ -12,7 +12,7 @@ class Mapper:
    def __init__(self, neo4j_graph, filename, format):
 
       self.neo4j_graph = neo4j_graph
-      self.owl_helper = OWLhelper(filename, format)
+      self.owl_helper = OWLHelper(filename, format)
       self.onto = self.owl_helper.load_owl_ontology()
 
    def process_classes(self,nodes):
@@ -84,11 +84,11 @@ class Mapper:
                      domain_classes.append(domain_class)
                
                #recursively get the subclass tree and add to a the list domain_classes
-               self.owl_helper.recAddSubClass(domain_class,domain_classes)
+               self.owl_helper.rec_add_subclass(domain_class,domain_classes)
 
                range_classes = []
                range_classes.append(range_class)
-               self.owl_helper.recAddSuperClass(range_class,range_classes)
+               self.owl_helper.rec_add_superclass(range_class,range_classes)
 
 
                for d_cls in domain_classes:
@@ -219,7 +219,7 @@ class Mapper:
                               #                                     f"{prop_name.upper()}",
                               #                                     filler_node))
                               subclasses = []
-                              self.owl_helper.recAddSubClass(cls,subclasses)
+                              self.owl_helper.rec_add_subclass(cls,subclasses)
 
                               for cls in subclasses:
                                  cls_name = self.owl_helper.extract_local_name(cls.iri)
@@ -422,11 +422,11 @@ class Mapper:
       # Step 5: Process equivalent classes
       self.process_equivalent_class_intersections(nodes)
       
-      # Step 6: Process inverse object properties
-      self.process_inverse_object_properties(nodes)
+      # # Step 6: Process inverse object properties
+      # self.process_inverse_object_properties(nodes)
       
-      # Step 7: Process object subproperties
-      self.process_object_subproperties(nodes)
+      # # Step 7: Process object subproperties
+      # self.process_object_subproperties(nodes)
 
       print("OWL to LPG Conversion Complete!")
       
@@ -443,9 +443,9 @@ format = "xml"
 connection = Connector(username, password)
 neo4j_graph = connection.connect_neo4j()
 
-# filename = "examples/PizzaOntology.rdf"
+filename = "inputs/PizzaOntology.rdf"
 # filename = "outputs/output_pizza_new.owl"
-filename = "inputs/animal.owl"
+# filename = "inputs/animal.owl"
 
 
 test = Mapper(neo4j_graph, filename, format)
