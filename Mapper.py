@@ -55,9 +55,6 @@ class Mapper:
                rel = Relationship(subclass_node, "SUBCLASS_OF", superclass_node)
                self.neo4j_graph.merge(rel)
                print(f"Creating SUBCLASS_OF: {subclass_name} --> {superclass_name}")
-               
-            # else: #here superclass is "THing"
-            #    print(f"Skipping subclass relation: {subclass} ⊆ {superclass} (invalid superclass)")
 
    def process_object_properties(self):
       
@@ -67,7 +64,6 @@ class Mapper:
          # Iterate through the domain and range of the object property
          for domain_class in prop.domain:
             for range_class in prop.range:
-               
                
                d_cls, r_cls = domain_class, range_class
                
@@ -96,8 +92,6 @@ class Mapper:
                rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
                self.neo4j_graph.merge(rel)
                
-
-
    def process_equivalent_class_intersections(self):
       for cls in self.onto.classes():
          for eq in cls.equivalent_to:
@@ -176,23 +170,19 @@ class Mapper:
                                                    f"{prop_name.upper()}",
                                                    filler_node))
            
-  
-   
    def process_individuals(self):
-      
     for individual in self.onto.individuals():
+      individual_name = self.owl_helper.extract_local_name(individual.iri)
 
-        individual_name = self.owl_helper.extract_local_name(individual.iri)
-
-        # Create a Neo4j node for this individual
-        individual_node = self.nodes.get(individual.iri)
-        if not individual_node:
+      # Create a Neo4j node for this individual
+      individual_node = self.nodes.get(individual.iri)
+      if not individual_node:
             individual_node = Node("Individual", name=individual_name)
             self.neo4j_graph.create(individual_node)
             self.nodes[individual.iri] = individual_node 
 
-        # Process class/subclass relationships
-        for cls in individual.is_a:
+      # Process class/subclass relationships
+      for cls in individual.is_a:
             if cls in self.onto.classes():
                class_name = self.owl_helper.extract_local_name(cls.iri)
 
@@ -208,8 +198,8 @@ class Mapper:
                self.neo4j_graph.merge(rel)
                print(f"Creating INSTANCE_OF: {individual_name} --> {class_name}")
 
-        # Process properties (object and data)
-        for prop in individual.get_properties():
+      # Process properties (object and data)
+      for prop in individual.get_properties():
          # A property can have multiple values\individuals
             for value in prop[individual]:
                   # Check if value is another OWL individual and add the relationship
@@ -222,7 +212,6 @@ class Mapper:
                         self.neo4j_graph.merge(target_node, "Individual", "name")
                         self.nodes[value.iri] = target_node 
                      
-
                      rel = Relationship(individual_node, prop.name.upper(), target_node)
                      self.neo4j_graph.merge(rel)
                      print(f"Creating object property: {individual_name} --{prop.name.upper()}--> {target_name}")
@@ -231,8 +220,6 @@ class Mapper:
                   elif isinstance(value, (str, int, float, bool)):  
                      individual_node[prop.name] = value
                      self.neo4j_graph.push(individual_node)
-
-
 
    def map_owl_to_lpg(self):
       
