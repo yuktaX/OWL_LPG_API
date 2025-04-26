@@ -68,15 +68,6 @@ class Mapper:
          for domain_class in prop.domain:
             for range_class in prop.range:
                
-               # Extract the local names for range class
-               range_name = self.owl_helper.extract_local_name(range_class.iri)
-               # Fetch or create the range class node
-               range_node = self.nodes.get(range_class.iri)
-               
-               if not range_node:
-                     range_node = Node("Class", name=range_name)
-                     self.neo4j_graph.merge(range_node)
-                     self.nodes[range_class.iri] = range_node  # Add to self.nodes dictionary
                
                d_cls, r_cls = domain_class, range_class
                
@@ -105,42 +96,7 @@ class Mapper:
                rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
                self.neo4j_graph.merge(rel)
                
-               #add all the ancestor properties to the relationship
-               for ancestor_prop in prop.is_a:
-                  if isinstance(ancestor_prop, ObjectPropertyClass) and ancestor_prop != prop and ancestor_prop != prop and ancestor_prop.name.upper() != "OBJECTPROPERTY":
-                     rel_name = ancestor_prop.name
-                     relationship = Relationship(d_cls_node, rel_name.upper(), r_cls_node)
-                     print(f"Creating inferred relationship: {d_cls_node} --{rel_name}--> {range_class.name}")
-                     self.neo4j_graph.merge(relationship)
-               
-         #go through all the instances, check what their parents are and assign all object propeties of their parents to the instance
-         for indi in self.onto.individuals():
-            individual_name = self.owl_helper.extract_local_name(indi.iri)
-            print(f"Processing individual: {individual_name}")
 
-            # Fetch or create the individual node
-            individual_node = self.nodes.get(indi.iri)
-            if not individual_node:
-               individual_node = Node("Individual", name=individual_name)
-               self.neo4j_graph.merge(individual_node)
-               self.nodes[indi.iri] = individual_node
-
-            # Find INSTANCE_OF relationships for the individual
-            instance_rels = list(self.neo4j_graph.match((individual_node,), r_type="INSTANCE_OF"))
-            for rel in instance_rels:
-               class_node = rel.end_node  # Class node the individual belongs to
-               print(f"Found INSTANCE_OF relationship: {individual_name} --> {class_node['name']}")
-
-               # Fetch all outgoing relationships from the class node (excluding INSTANCE_OF)
-               class_rels = self.neo4j_graph.match((class_node,), r_type=None)
-               for class_rel in class_rels:
-                  if class_rel.type == "INSTANCE_OF" or class_rel.__class__.__name__ == "Relationship" or class_rel.__class__ == Relationship:
-                     continue  # Skip INSTANCE_OF relationships
-
-                  # Copy the relationship to the individual node
-                  new_rel = Relationship(individual_node, class_rel.__class__.__name__, class_rel.end_node)
-                  self.neo4j_graph.merge(new_rel)
-                  print(f"Copied relationship: {individual_name} --{class_rel.__class__.__name__}--> {class_rel.end_node['name']}")
 
    def process_equivalent_class_intersections(self):
       for cls in self.onto.classes():
@@ -191,7 +147,7 @@ class Mapper:
                               #                                     f"{prop_name.upper()}",
                               #                                     filler_node))
                               subclasses = []
-                              self.owl_helper.recAddSubClass(cls,subclasses)
+                              self.owl_helper.rec_add_subclass(cls,subclasses)
 
                               for cls in subclasses:
                                  cls_name = self.owl_helper.extract_local_name(cls.iri)
@@ -220,81 +176,7 @@ class Mapper:
                                                    f"{prop_name.upper()}",
                                                    filler_node))
            
-   def process_inverse_object_properties(self):
-      
-      for prop in self.onto.object_properties():
-         
-         if prop.inverse_property:
-            inverse_prop = prop.inverse_property
-            inverse_name = inverse_prop.name
-         else:
-            continue
-            
-         print(f"Processing inverse property: {inverse_name}")
-
-         # Iterate through the domain and range of the object property
-         for domain_class in prop.domain:
-            for range_class in prop.range:
-               
-            # Extract the local names for domain and range classes
-               domain_name = self.owl_helper.extract_local_name(domain_class.iri)
-               range_name = self.owl_helper.extract_local_name(range_class.iri)
-
-               # Fetch or create the domain and range class self.nodes
-               domain_node = self.nodes.get(domain_class.iri)
-               if not domain_node:
-                  domain_node = Node("Class", name=domain_name)
-                  self.neo4j_graph.create(domain_node)
-                  self.nodes[domain_class.iri] = domain_node
-
-               range_node = self.nodes.get(range_class.iri)
-               if not range_node:
-                  range_node = Node("Class", name=range_name)
-                  self.neo4j_graph.create(range_node)
-                  self.nodes[range_class.iri] = range_node
-
-               # Create a relationship for the inverse property
-               rel = Relationship(range_node, inverse_name.upper(), domain_node)
-               self.neo4j_graph.merge(rel)
-               print(f"Creating INVERSE Relationship: {range_name} --{inverse_name.upper()}--> {domain_name}")
-               
-   def process_object_subproperties(self):
-      
-      for prop in self.onto.object_properties():
-         
-         # Check if the property has a superproperty (subPropertyOf relationship)
-         for superprop in prop.is_a:
-            
-            if isinstance(superprop, ObjectPropertyClass) and superprop != prop and superprop.name.upper() != "OBJECTPROPERTY":
-               prop_name = prop.name
-               superprop_name = superprop.name
-               print(f"Processing subproperty: {prop_name} ⊆ {superprop_name}")
-
-               # Iterate through the domain and range of the object property
-               for domain_class in prop.domain:
-                  for range_class in prop.range:
-                     
-                     # Extract the local names for domain and range classes
-                     domain_name = self.owl_helper.extract_local_name(domain_class.iri)
-                     range_name = self.owl_helper.extract_local_name(range_class.iri)
-
-                     # Fetch or create the domain and range class self.nodes
-                     domain_node = self.nodes.get(domain_class.iri)
-                     if not domain_node:
-                        domain_node = Node("Class", name=domain_name)
-                        self.neo4j_graph.create(domain_node)
-                        self.nodes[domain_class.iri] = domain_node
-
-                     range_node = self.nodes.get(range_class.iri)
-                     if not range_node:
-                        range_node = Node("Class", name=range_name)
-                        self.neo4j_graph.create(range_node)
-                        self.nodes[range_class.iri] = range_node
-
-                     # Create a relationship for the superproperty
-                     rel = Relationship(domain_node, superprop_name.upper(), range_node)
-                     self.neo4j_graph.merge(rel)
-                     print(f"Creating SUBPROPERTY_OF Relationship: {domain_name} --{superprop_name.upper()}--> {range_name}")
+  
    
    def process_individuals(self):
       
@@ -333,8 +215,13 @@ class Mapper:
                   # Check if value is another OWL individual and add the relationship
                   if isinstance(value, Thing): 
                      target_name = self.owl_helper.extract_local_name(value.iri)
-                     target_node = Node("Individual", name = target_name)
-                     self.neo4j_graph.merge(target_node, "Individual", "name")
+                     target_node = self.nodes.get(value.iri)
+
+                     if not target_node:
+                        target_node = Node("Individual", name = target_name)
+                        self.neo4j_graph.merge(target_node, "Individual", "name")
+                        self.nodes[value.iri] = target_node 
+                     
 
                      rel = Relationship(individual_node, prop.name.upper(), target_node)
                      self.neo4j_graph.merge(rel)
@@ -345,23 +232,7 @@ class Mapper:
                      individual_node[prop.name] = value
                      self.neo4j_graph.push(individual_node)
 
-   def process_transitive_properties(self):
-      
-      for individual in self.onto.individuals():
-         for prop in self.onto.object_properties():
-            
-            # Check if the property is transitive and get all related edges
-            indirect_prop_name = f"INDIRECT_{prop.name}"
-            related_ind = getattr(individual, indirect_prop_name)
-            print(f"Individual name: {individual.name}, Property name: {prop.name}, Related individuals: {related_ind}")
 
-            for obj in related_ind:
-               obj_node = self.nodes.get(obj.iri)
-               ind_node = self.nodes.get(individual.iri)
-               
-               print("Creating TRANSITIVE relationship {} --{}--> {}".format(ind_node, prop.name.upper(), obj_node))
-               rel = Relationship(ind_node, prop.name.upper(), obj_node)
-               self.neo4j_graph.merge(rel)
 
    def map_owl_to_lpg(self):
       
@@ -379,12 +250,7 @@ class Mapper:
 
       # Step 5: Process equivalent classes
       self.process_equivalent_class_intersections()
-      
-      # Step 6: Process inverse object properties
-      self.process_inverse_object_properties()
-      
-      # Step 7: Process object subproperties
-      self.process_object_subproperties()
+
 
       print("OWL to LPG Conversion Complete!")
       

@@ -1,0 +1,7 @@
+uri:ID(ObjectProperty),domain,range,label
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isToppingOf,,,isToppingOf
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isIngredientOf,,,isIngredientOf
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#hasTopping,http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza,http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaTopping,hasTopping
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#hasBase,http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza,http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaBase,hasBase
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#hasIngredient,,,hasIngredient
+http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isBaseOf,,,isBaseOf
