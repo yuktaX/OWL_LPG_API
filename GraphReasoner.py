@@ -126,6 +126,8 @@ class GraphReasoner:
             for record in result:
                 inverse_node = record["b"]
                 inverse_pairs[node["name"].upper()] = inverse_node["name"].upper()
+            
+            print(inverse_pairs)
         
         for inverse_key, inverse_value in inverse_pairs.items():
             #Get all nodes with inverse_key as the edge
