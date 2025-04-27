@@ -221,7 +221,7 @@ class Mapper:
                      individual_node[prop.name] = value
                      self.neo4j_graph.push(individual_node)
 
-   def map_owl_to_lpg(self):
+   def map_all(self):
       
       # Step 1: Process OWL Classes and Create LPG Nodes
       self.process_classes()
@@ -241,26 +241,26 @@ class Mapper:
 
       print("OWL to LPG Conversion Complete!")
       
-# Retrieve environment variables
-username = os.getenv("USERNAME_1")
-password = os.getenv("PASSWORD")
+# # Retrieve environment variables
+# username = os.getenv("USERNAME_1")
+# password = os.getenv("PASSWORD")
 
 
-# Check if variables are loaded correctly
-if not username or not password:
-    raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
+# # Check if variables are loaded correctly
+# if not username or not password:
+#     raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
 
-format = "xml"
-connection = Connector(username, password)
-neo4j_graph = connection.connect_neo4j()
+# format = "xml"
+# connection = Connector(username, password)
+# neo4j_graph = connection.connect_neo4j()
 
-filename = "inputs/PizzaOntology.rdf"
-# filename = "outputs/output_pizza_new.owl"
-# filename = "inputs/animal.owl"
+# filename = "inputs/PizzaOntology.rdf"
+# # filename = "outputs/output_pizza_new.owl"
+# # filename = "inputs/animal.owl"
 
 
-test = Mapper(neo4j_graph, filename, format)
+# test = Mapper(neo4j_graph, filename, format)
 
-test.map_owl_to_lpg()
+# test.map_owl_to_lpg()
 
 

@@ -64,20 +64,23 @@ class GraphMetaData:
             self.neo4j_graph.merge(node, "ObjectProperty", "name")
             self.neo4j_graph.merge(subproperty_relationship)
             
+   def add_all(self):
+      self.add_inverse_properties()
+      self.add_object_subproperties()
+      self.add_transitive_properties()
 
+# username = os.getenv("USERNAME_1")
+# password = os.getenv("PASSWORD")
 
-username = os.getenv("USERNAME_1")
-password = os.getenv("PASSWORD")
+# connection = Connector("neo4j", "12345")
+# neo4j_graph = connection.connect_neo4j()
+# ontology_file = "inputs/PizzaOntology.rdf"
 
-connection = Connector("neo4j", "12345")
-neo4j_graph = connection.connect_neo4j()
-ontology_file = "inputs/PizzaOntology.rdf"
+# # Create an instance of GraphMetaData
+# onto_metadata = GraphMetaData(ontology_file, neo4j_graph)
 
-# Create an instance of GraphMetaData
-onto_metadata = GraphMetaData(ontology_file, neo4j_graph)
-
-# Test the add_inverse_properties function
-onto_metadata.add_inverse_properties()
-onto_metadata.add_transitive_properties()
-onto_metadata.add_object_subproperties()
+# # Test the add_inverse_properties function
+# onto_metadata.add_inverse_properties()
+# onto_metadata.add_transitive_properties()
+# onto_metadata.add_object_subproperties()
       
