@@ -59,38 +59,47 @@ class Mapper:
    def process_object_properties(self):
       
       for prop in self.onto.object_properties():
-         prop_name = prop.name
          
-         # Iterate through the domain and range of the object property
-         for domain_class in prop.domain:
-            for range_class in prop.range:
+         all_props = [prop]
+         all_props.extend(prop.is_a)
+         
+         for superprop in all_props:
+            prop_name = superprop.name
+            if prop_name not in ["ObjectProperty", "TransitiveProperty"]:
+         
+               # If prop doesnt have domain range use the child domain range
+               domain = superprop.domain if superprop.domain else prop.domain
+               range = superprop.range if superprop.range else prop.range
                
-               d_cls, r_cls = domain_class, range_class
-               
-               if isinstance(d_cls,Restriction) or isinstance(r_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
-                     continue
-               
-               d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
-               r_cls_name = self.owl_helper.extract_local_name(r_cls.iri)
-               
-               # Fetch or create the domain class node
-               d_cls_node = self.nodes.get(d_cls.iri)
-               if not d_cls_node:
-                  d_cls_node = Node("Class", name=d_cls_name)
-                  self.neo4j_graph.merge(d_cls_node)
-                  self.nodes[d_cls.iri] = d_cls_node  
+               for domain_class in domain:
+                  for range_class in range:
 
-               # Fetch or create the range class node
-               r_cls_node = self.nodes.get(r_cls.iri)
-               if not r_cls_node:
-                  r_cls_node = Node("Class", name=r_cls_name)
-                  self.neo4j_graph.create(r_cls_node)
-                  self.nodes[r_cls.iri] = r_cls_node  
-                  
-               # Create a relationship between the domain (or domain subclass) and range using the property name
-               print(f"Creating Relationship: {d_cls_name} --{prop_name.upper()}--> {r_cls_name}")
-               rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
-               self.neo4j_graph.merge(rel)
+                     d_cls, r_cls = domain_class, range_class
+                     
+                     if isinstance(d_cls,Restriction) or isinstance(r_cls,Restriction):    #remove the cls != domain_class if you want all sub classes to also be considered
+                           continue
+                     
+                     d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
+                     r_cls_name = self.owl_helper.extract_local_name(r_cls.iri)
+                     
+                     # Fetch or create the domain class node
+                     d_cls_node = self.nodes.get(d_cls.iri)
+                     if not d_cls_node:
+                        d_cls_node = Node("Class", name=d_cls_name)
+                        self.neo4j_graph.merge(d_cls_node)
+                        self.nodes[d_cls.iri] = d_cls_node  
+
+                     # Fetch or create the range class node
+                     r_cls_node = self.nodes.get(r_cls.iri)
+                     if not r_cls_node:
+                        r_cls_node = Node("Class", name=r_cls_name)
+                        self.neo4j_graph.create(r_cls_node)
+                        self.nodes[r_cls.iri] = r_cls_node  
+                        
+                     # Create a relationship between the domain (or domain subclass) and range using the property name
+                     print(f"Creating Relationship: {d_cls_name} --{prop_name.upper()}--> {r_cls_name}")
+                     rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
+                     self.neo4j_graph.merge(rel)
                
    def process_equivalent_class_intersections(self):
       for cls in self.onto.classes():
