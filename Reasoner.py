@@ -26,8 +26,8 @@ class Reasoner:
    
 
 # test =  Reasoner("example3.owl", "output_alice.owl")
-test = Reasoner("inputs/animal.owl","outputs/animal.owl")
-test.run_owlready_reasoner()
-print("*******Reasoner finished********")
-test.save_ontology()
-print("*******Ontology saved********")
+# test = Reasoner("inputs/animal.owl","outputs/animal.owl")
+# test.run_owlready_reasoner()
+# print("*******Reasoner finished********")
+# test.save_ontology()
+# print("*******Ontology saved********")
