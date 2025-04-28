@@ -644,6 +644,10 @@
         <untitled-ontology-18:hasCaloricContent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">300</untitled-ontology-18:hasCaloricContent>
     </owl:NamedIndividual>
     
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#CheeseTopping1">
+    <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#MozzarellaTopping"/>
+    <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#ParmesanTopping"/>
+    </owl:NamedIndividual>
 
 
     <!-- 
