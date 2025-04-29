@@ -2,7 +2,7 @@ from owlready2 import *
 import rdflib
 from rdflib.namespace import RDF, RDFS, OWL
 
-class Reasoner:
+class OWLReadyReasoner:
    
    def __init__(self, filepath, output_filepath):
       self.filepath = filepath

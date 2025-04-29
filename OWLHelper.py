@@ -2,6 +2,7 @@ import rdflib
 from owlready2 import *
 
 class OWLHelper:
+   
    def __init__(self, filename, format="xml"):
       self.filename = filename
       self.format = format

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class GraphMetaData:
+   
    def __init__(self, filename, neo4j_graph):
       self.owl_helper = OWLHelper(filename, format)
       self.onto = self.owl_helper.load_owl_ontology()
@@ -64,8 +65,6 @@ class GraphMetaData:
             self.neo4j_graph.merge(node, "ObjectProperty", "name")
             self.neo4j_graph.merge(subproperty_relationship)
    
-
-
    def add_disjoint_properties(self):
     seen_pairs = set()
 

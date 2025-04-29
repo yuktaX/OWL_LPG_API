@@ -5,29 +5,24 @@ class GraphReasoner:
         self.graph = graph
     
     def perform_reasoning(self):
-        # Add inferred subclass relationships
         self.add_inferred_subclass_relationships()
-        # Add inferred object properties
         self.add_inferred_object_properties()
-        # Add inferred inverse properties
         self.add_inferred_inverse_properties()
         self.propagate_properties_to_instances()
         self.process_disjoint_inference()
         
+        print("Reasoning completed.")
+        
     def add_inferred_subclass_relationships(self):
-        # Fetch all class nodes
         class_nodes = self.graph.nodes.match("Class")
         
         for cls in class_nodes:
             self.process_subclasses(cls, cls)
 
     def process_subclasses(self, ancestor_node, current_node):
-        """
-        Recursively adds inferred SUBCLASS_OF relationships.
-        
-        ancestor_node: The original ancestor class node.
-        current_node: The node we are currently exploring subclasses for.
-        """
+        # Recursively adds inferred SUBCLASS_OF relationships.
+        # ancestor_node: The original ancestor class node.
+        # current_node: The node we are currently exploring subclasses for.
         # Find direct subclasses of current_node
         query = """
         MATCH (child:Class)-[r]->(parent:Class)
@@ -46,7 +41,6 @@ class GraphReasoner:
 
             # Recurse deeper: child becomes new current_node
             self.process_subclasses(ancestor_node, child_node)
-
 
     def add_inferred_object_properties(self):
         # Find all object property relationships between Classes
@@ -67,7 +61,6 @@ class GraphReasoner:
 
             for related_node in related_nodes:
 
-
                 related_label = list(related_node.labels)[0]
                 related_name = related_node["name"]
 
@@ -76,15 +69,12 @@ class GraphReasoner:
 
                 rel_type_dynamic = rel_type  # relationship type as a variable
 
-
                 query = f"""
                 MATCH (a:{related_label} {{name: $related_name}})
                 MATCH (b:{b_label} {{name: $b_name}})
                 MERGE (a)-[r:{rel_type_dynamic}]->(b)
                 """
-
                 self.graph.run(query, related_name=related_name, b_name=b_name)
-
 
             # Add property to all superclasses of b_node
             superclasses_b = self.find_superclasses(b_node)
@@ -92,12 +82,9 @@ class GraphReasoner:
                 new_rel = Relationship(a_node, rel_type, super_b)
                 self.graph.merge(new_rel)
 
-
     def propagate_properties_to_instances(self):
-        """
-        For each node 'a' that is an instance of class 'b', copy all of 'b''s outgoing relationships onto 'a'.
-        """
-        # Step 1: Find all (instance)-[:INSTANCE_OF]->(class) pairs
+        # For each node 'a' that is an instance of class 'b', copy all of 'b''s outgoing relationships onto 'a'.
+        # Find all (instance)-[:INSTANCE_OF]->(class) pairs
         instance_query = """
         MATCH (instance:Individual)-[:INSTANCE_OF]->(class:Class)
         RETURN instance, class
@@ -108,7 +95,7 @@ class GraphReasoner:
             instance_node = record["instance"]
             class_node = record["class"]
 
-            # Step 2: Find all outgoing edges from the class node (except SUBCLASS_OF and INSTANCE_OF)
+            # Find all outgoing edges from the class node (except SUBCLASS_OF and INSTANCE_OF)
             outgoing_edges_query = """
             MATCH (class:Class)-[r]->(target)
             WHERE id(class) = $class_id AND NOT type(r) IN ['SUBCLASS_OF', 'INSTANCE_OF']
@@ -120,12 +107,11 @@ class GraphReasoner:
                 rel_type = edge_record["rel_type"]
                 target_node = edge_record["target"]
 
-                # Step 3: Create the same relationship from instance_node to target_node
+                # Create the same relationship from instance_node to target_node
                 new_rel = Relationship(instance_node, rel_type, target_node)
                 self.graph.merge(new_rel)
 
                 print(f"Created relationship: ({instance_node['name']})-[:{rel_type}]->({target_node['name']})")
-
 
     def find_subclasses(self, node):
         # Find all subclasses and instances of a given class node
@@ -137,7 +123,6 @@ class GraphReasoner:
         result = self.graph.run(query, node_id=node.identity)
         
         return [record["node"] for record in result]
-
 
     def find_superclasses(self, node):
         # Find all superclasses of a given class node
@@ -163,13 +148,10 @@ class GraphReasoner:
             RETURN b
             """
             result = self.graph.run(query, node_id=node.identity)
-            # print(result)
 
             for record in result:
                 inverse_node = record["b"]
                 inverse_pairs[node["name"].upper()] = inverse_node["name"].upper()
-            
-            print(inverse_pairs)
         
         for inverse_key, inverse_value in inverse_pairs.items():
             #Get all nodes with inverse_key as the edge
@@ -190,11 +172,8 @@ class GraphReasoner:
                 # Add the nodes and relationship to the graph
                 self.graph.merge(inverse_relationship)
 
-
     def infer_disjoint_closure(self):
-        """
-        Step 1: Find indirect disjoint relationships and create direct ones.
-        """
+        #Find indirect disjoint relationships and create direct ones.
         query = """
         MATCH (a:CLASS_PROPERTY)-[:DISJOINT]->(b:CLASS_PROPERTY)-[:DISJOINT]->(c:CLASS_PROPERTY)
         WHERE NOT (a)-[:DISJOINT]->(c)
@@ -210,9 +189,7 @@ class GraphReasoner:
             self.graph.merge(disjoint_rel)
 
     def mark_invalid_individuals(self):
-        """
-        Step 2: Find individuals that are instances of disjoint classes and mark them invalid.
-        """
+        #Find individuals that are instances of disjoint classes and mark them invalid.
         query = """
         MATCH (i:Individual)-[:INSTANCE_OF]->(c1:Class),
             (i)-[:INSTANCE_OF]->(c2:Class),
@@ -239,8 +216,8 @@ class GraphReasoner:
 
 
 
-graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
-reasoner = GraphReasoner(graph)
-reasoner.add_inferred_subclass_relationships()
-reasoner.add_inferred_object_properties()
-reasoner.add_inferred_inverse_properties()
+# graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
+# reasoner = GraphReasoner(graph)
+# reasoner.add_inferred_subclass_relationships()
+# reasoner.add_inferred_object_properties()
+# reasoner.add_inferred_inverse_properties()

@@ -38,4 +38,4 @@ class TestPizzaOntology:
       graph = self.setup_method()
       query = "MATCH (a)-[r:ISINGREDIENTOF]->(b) WHERE a.name = 'PizzaBase' AND b.name = 'SohoPizza' RETURN a, r, b"
       result = list(graph.run(query))
-      assert len(result) == 1, "Test 4 FAILED - INVERSE"
+      assert len(result) == 1, "Test 5 FAILED - INVERSE"
