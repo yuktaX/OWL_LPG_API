@@ -17,6 +17,7 @@ class GraphReasoner:
         self.propagate_properties_to_instances()
         self.process_disjoint_inference()
         self.apply_equivalence_reasoning()
+        self.add_inferred_transitive_relationships()
         
         print("Reasoning completed.")
         
@@ -232,6 +233,7 @@ class GraphReasoner:
         self.infer_disjoint_closure()
         self.mark_invalid_individuals()
 
+
     def apply_equivalence_reasoning(self):
         query = """
         MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]-(cond:EQUIV_COND)-[r]->(:PROPERTY_VALUE)
@@ -245,8 +247,47 @@ class GraphReasoner:
             # handler = self.condition_handlers.get(rel_type)
             handler = self.condition_handlers.get(class_node["name"])
 
-            if handler:
-                handler.evaluate_condition(class_node)
+    def add_inferred_transitive_relationships(self):
+                # Step 1: Fetch all ObjectProperties
+        object_property_nodes = self.graph.nodes.match("ObjectProperty")
+        transitive_properties = set()
+
+        # Step 2: Identify transitive object properties
+        for node in object_property_nodes:
+            query = """
+            MATCH (a:ObjectProperty)-[:TRANSITIVE]->()
+            WHERE id(a) = $node_id
+            RETURN a
+            """
+            result = self.graph.run(query, node_id=node.identity)
+            if result.forward():
+                transitive_properties.add(node["name"].upper())
+        
+        print("Found transitive properties:", transitive_properties)
+
+        # Step 3: For each transitive property, find all reachable nodes
+        for prop in transitive_properties:
+            query = f"""
+            MATCH (start)-[:`{prop}`*2..]->(end)
+            WHERE (start:Class OR start:Individual)
+            AND (end:Class OR end:Individual)
+            AND NOT (start)-[:`{prop}`]->(end)
+            RETURN DISTINCT start, end
+            """
+
+            result = self.graph.run(query)
+
+            for record in result:
+                start_node = record["start"]
+                end_node = record["end"]
+
+                # Create the direct inferred relationship
+                inferred_rel = Relationship(start_node, prop, end_node)
+                self.graph.merge(inferred_rel)
+
+                print(f"Created inferred transitive link: {start_node['name']} -[:{prop}]-> {end_node['name']}")
+    
+
 
 # graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
 # reasoner = GraphReasoner(graph)
