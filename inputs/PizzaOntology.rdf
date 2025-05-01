@@ -75,6 +75,12 @@
         <rdfs:domain rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
         <rdfs:range rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
     </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isSpicierThan">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
+        <rdfs:domain rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PepperTopping"/>
+        <rdfs:range rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PepperTopping"/>
+    </owl:ObjectProperty>
     
 
 
@@ -297,6 +303,12 @@
 
     <owl:Class rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#JalapenoPepperTopping">
         <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PepperTopping"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isSpicierThan"/>
+                <owl:someValuesFrom rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#RedPepperTopping"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
     </owl:Class>
     
 
@@ -464,6 +476,24 @@
 
     <owl:Class rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#RedPepperTopping">
         <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PepperTopping"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isSpicierThan"/>
+                <owl:someValuesFrom rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#YellowPepperTopping"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+
+    <!-- http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#YellowPepperTopping -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#YellowPepperTopping">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PepperTopping"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#isSpicierThan"/>
+                <owl:someValuesFrom rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#GreenPepperTopping"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
     </owl:Class>
     
 
@@ -700,6 +730,7 @@
             <rdf:Description rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#GreenPepperTopping"/>
             <rdf:Description rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#JalapenoPepperTopping"/>
             <rdf:Description rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#RedPepperTopping"/>
+            <rdf:Description rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#YellowPepperTopping"/>
         </owl:members>
     </rdf:Description>
     <rdf:Description>

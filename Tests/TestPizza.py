@@ -8,11 +8,17 @@ class TestPizzaOntology:
    def setup_method():
       filename = "inputs/PizzaOntology.rdf"
       main_instance = Main(filename)
-      return main_instance.run()
+      return main_instance.run(None)
 
-   def test_transitive(self):
+   def test_transitive_instance(self):
       graph = self.setup_method()
-      query = "MATCH (a)-[r:ISLIKE]->(b) WHERE a.name = 'AmericanPizza1' AND b.name = 'SohoPizza1' RETURN a, r, b"
+      query = "MATCH (a)-[r:ISLIKE]->(b) WHERE a.name = 'AmericanaPizza1' AND b.name = 'SohoPizza1' RETURN a, r, b"
+      result = list(graph.run(query))
+      assert len(result) == 1, "Test 1 FAILED - TRANSITIVE"
+
+   def test_transitive_instance_class(self):
+      graph = self.setup_method()
+      query = "MATCH (a)-[r:ISSPICIERTHAN]->(b) WHERE a.name = 'JalapenoPepperTopping' AND b.name = 'GreenPepperTopping' RETURN a, r, b"
       result = list(graph.run(query))
       assert len(result) == 1, "Test 1 FAILED - TRANSITIVE"
 

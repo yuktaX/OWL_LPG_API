@@ -230,6 +230,42 @@ class Mapper:
                      individual_node[prop.name] = value
                      self.neo4j_graph.push(individual_node)
 
+   def process_subclass_restrictions(self):
+        nodes = {}
+
+        for d_cls in self.onto.classes():
+            d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
+
+            # Fetch or create the domain class node
+            d_cls_node = nodes.get(d_cls.iri)
+            if not d_cls_node:
+                d_cls_node = Node("Class", name=d_cls_name)
+                self.neo4j_graph.merge(d_cls_node, "Class", "name")
+                nodes[d_cls.iri] = d_cls_node
+
+            for superclass in d_cls.is_a:
+                # Check if it is a "some" restriction (ObjectSomeValuesFrom)
+                if isinstance(superclass, owlready2.Restriction) and superclass.type == SOME:
+                    prop = superclass.property  # Object Property
+                    r_cls = superclass.value     # Range Class
+
+                    if isinstance(r_cls, ThingClass):  # Ensure r_cls is a class, not an instance
+                        r_cls_name = self.owl_helper.extract_local_name(r_cls.iri)
+
+                        # Fetch or create the range class node
+                        r_cls_node = nodes.get(r_cls.iri)
+                        if not r_cls_node:
+                            r_cls_node = Node("Class", name=r_cls_name)
+                            self.neo4j_graph.merge(r_cls_node, "Class", "name")
+                            nodes[r_cls.iri] = r_cls_node
+
+                        # Create relationship
+                        prop_name = self.owl_helper.extract_local_name(prop.iri)
+                        rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
+                        self.neo4j_graph.create(rel)
+
+                        print(f"Created relationship: {d_cls_name} -[:{prop_name.upper()}]-> {r_cls_name}")
+
    def map_all(self):
       
       # Step 1: Process OWL Classes and Create LPG Nodes
@@ -244,7 +280,10 @@ class Mapper:
       # Step 4: Process Object Properties (Relationships)
       self.process_object_properties()
 
-      # Step 5: Process equivalent classes
+      # Step 5: Process subclass restrictions
+      self.process_subclass_restrictions()
+
+      # Step 6: Process equivalent classes
       self.process_equivalent_class_intersections()
 
 
