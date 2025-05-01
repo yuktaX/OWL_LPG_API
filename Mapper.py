@@ -245,7 +245,7 @@ class Mapper:
       self.process_object_properties()
 
       # Step 5: Process equivalent classes
-      self.process_equivalent_class_intersections()
+      # self.process_equivalent_class_intersections()
 
 
       print("OWL to LPG Conversion Complete!")

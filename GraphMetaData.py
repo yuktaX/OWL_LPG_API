@@ -1,5 +1,7 @@
 from py2neo import *
+import owlready2
 from owlready2 import owl
+from owlready2 import And, Restriction, ThingClass
 from OWLHelper import OWLHelper
 from Connector import Connector
 import os
@@ -98,12 +100,147 @@ class GraphMetaData:
                     self.neo4j_graph.merge(node1, "CLASS_PROPERTY", "name")
                     self.neo4j_graph.merge(node2, "CLASS_PROPERTY", "name")
                     self.neo4j_graph.merge(disjoint_relationship)
-            
+
+
+
+
+   def add_equivalent_classes(self):
+      for cls in self.onto.classes():
+         class_name = self.owl_helper.extract_local_name(cls.iri)
+         class_node = Node("CLASS_PROPERTY", name=class_name)
+         self.neo4j_graph.merge(class_node, "CLASS_PROPERTY", "name")
+
+         for eq_axiom in cls.equivalent_to:
+               # Create intermediate condition node
+               condition_label = f"{class_name}_EquivCond"
+               condition_node = Node("EQUI_COND", name=condition_label)
+               self.neo4j_graph.merge(condition_node, "EQUI_COND", "name")
+
+               # Connect class to condition node
+               self.neo4j_graph.merge(Relationship(class_node, "EQUIVALENT_TO", condition_node))
+
+               expressions = []
+               if isinstance(eq_axiom, And):
+                  expressions = list(eq_axiom.Classes)
+               else:
+                  expressions = [eq_axiom]
+
+               for expr in expressions:
+                  if isinstance(expr, Restriction) and hasattr(expr, "property"):
+                     # prop_name = self.owl_helper.extract_local_name(expr.property.iri)
+                     # property_node = Node("RESTRICTION_PROPERTY", name=prop_name)
+                     # self.neo4j_graph.merge(property_node, "RESTRICTION_PROPERTY", "name")
+
+                     # Determine target of restriction
+                     if hasattr(expr, "value") and expr.value:
+                     #    val = expr.value
+                     #    if hasattr(val, "iri"):
+                     #       target_name = self.owl_helper.extract_local_name(val.iri)
+                     #    else:
+                     #       target_name = str(val)
+
+                        val = expr.value
+                        
+                        if isinstance(val, owlready2.class_construct.Or):
+                           for option in val.Classes:
+                                 if hasattr(option, "iri"):
+                                    target_name = self.owl_helper.extract_local_name(option.iri)
+                                 else:
+                                    target_name = str(option)
+
+                                 print("Created CLASS_PROPERTY (value, Or) - ",target_name)
+                                 target_node = Node("CLASS_PROPERTY", name=target_name)
+                                 self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                                 rel = Relationship(condition_node, self.owl_helper.extract_local_name(expr.property.iri), target_node)
+                                 self.neo4j_graph.merge(rel)
+                        else:
+
+                           if hasattr(val, "iri"):
+                                 target_name = self.owl_helper.extract_local_name(val.iri)
+                           else:
+                                 target_name = str(val)
+
+                           print("Created CLASS_PROPERTY (value, not Or)- ",target_name)
+                           target_node = Node("CLASS_PROPERTY", name=target_name)
+                           self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                           rel = Relationship(condition_node, self.owl_helper.extract_local_name(expr.property.iri), target_node)
+                           self.neo4j_graph.merge(rel)
+
+                        # print("Created CLASS_PROPERTY (value)- ",target_name)
+                        # target_node = Node("CLASS_PROPERTY", name=target_name)
+                        # self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                        # Edge: condition_node -[prop_name]-> target_node
+                        # self.neo4j_graph.merge(Relationship(condition_node, prop_name, target_node))
+
+                     elif hasattr(expr, "some") and expr.some:
+                        
+                        prop_node = Node("OBJECT_PROPERTY", name=self.owl_helper.extract_local_name(expr.property.iri))
+                        self.neo4j_graph.merge(prop_node, "OBJECT_PROPERTY", "name")
+                        
+                        val = expr.some
+                        
+                        if isinstance(val, owlready2.class_construct.Or):
+                           for option in val.Classes:
+                                 if hasattr(option, "iri"):
+                                    target_name = self.owl_helper.extract_local_name(option.iri)
+                                 else:
+                                    target_name = str(option)
+
+                                 print("Created CLASS_PROPERTY (some, Or) - ",target_name)
+                                 target_node = Node("CLASS_PROPERTY", name=target_name)
+                                 self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                                 rel = Relationship(condition_node, self.owl_helper.extract_local_name(expr.property.iri), target_node)
+                                 self.neo4j_graph.merge(rel)
+                        else:
+
+                           if hasattr(val, "iri"):
+                                 target_name = self.owl_helper.extract_local_name(val.iri)
+                           else:
+                                 target_name = str(val)
+
+                           print("Created CLASS_PROPERTY (some, not Or)- ",target_name)
+                           target_node = Node("CLASS_PROPERTY", name=target_name)
+                           self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                           rel = Relationship(condition_node, self.owl_helper.extract_local_name(expr.property.iri), target_node)
+                           self.neo4j_graph.merge(rel)
+
+                     elif hasattr(expr, "only") and expr.only:
+                        val = expr.only
+                        target_name = self.owl_helper.extract_local_name(val.iri) if hasattr(val, "iri") else str(val)
+
+                        print("Created CLASS_PROPERTY (only)- ",target_name)
+                        target_node = Node("CLASS_PROPERTY", name=target_name)
+                        self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
+
+                        # Edge: condition_node -[prop_name]-> target_node
+                        self.neo4j_graph.merge(Relationship(condition_node, prop_name, target_node))
+                     else:
+                           continue  # skip unknown type
+
+                     
+
+                  elif isinstance(expr, ThingClass):
+                     base_class_name = self.owl_helper.extract_local_name(expr.iri)
+                     print("Created CLASS_PROPERTY (ThingClass)- ",base_class_name)
+                     base_class_node = Node("CLASS_PROPERTY", name=base_class_name)
+                     self.neo4j_graph.merge(base_class_node, "CLASS_PROPERTY", "name")
+
+                     self.neo4j_graph.merge(Relationship(condition_node, "EQUIVALENT_CLASS", base_class_node))
+
+
+
+
    def add_all(self):
       self.add_inverse_properties()
       self.add_object_subproperties()
       self.add_transitive_properties()
       self.add_disjoint_properties()
+      self.add_equivalent_classes()
 
 # username = os.getenv("USERNAME_1")
 # password = os.getenv("PASSWORD")

@@ -645,8 +645,13 @@
     </owl:NamedIndividual>
     
     <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#CheeseTopping1">
-    <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#MozzarellaTopping"/>
-    <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#ParmesanTopping"/>
+        <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#MozzarellaTopping"/>
+        <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#ParmesanTopping"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#CheesyPizza1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#Pizza"/>
+        <untitled-ontology-18:hasTopping rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#CheeseTopping"/>
     </owl:NamedIndividual>
 
 

@@ -1,15 +1,22 @@
 from py2neo import Graph, Node, Relationship, NodeMatcher
+from ToppingEquivalenceReasoner import ToppingEquivalenceReasoner
 
 class GraphReasoner:
     def __init__(self, graph: Graph):
         self.graph = graph
+        self.condition_handlers = {
+            "CheesyPizza": ToppingEquivalenceReasoner(graph)
+            # Add other handlers as needed
+        }
+
     
     def perform_reasoning(self):
         self.add_inferred_subclass_relationships()
-        self.add_inferred_object_properties()
+        # self.add_inferred_object_properties()
         self.add_inferred_inverse_properties()
         self.propagate_properties_to_instances()
         self.process_disjoint_inference()
+        self.apply_equivalence_reasoning()
         
         print("Reasoning completed.")
         
@@ -172,6 +179,17 @@ class GraphReasoner:
                 # Add the nodes and relationship to the graph
                 self.graph.merge(inverse_relationship)
 
+    # def add_inferred_inverse_properties(self):
+    #     # Skip inferred relationships from inverse properties
+    #     outgoing_edges_query = """
+    #     MATCH (class:Class)-[r]->(target)
+    #     WHERE id(class) = $class_id 
+    #     AND NOT type(r) IN ['SUBCLASS_OF', 'INSTANCE_OF'] 
+    #     AND NOT (target)-[:INVERSE_OF]->(class)  // skip inverse-based edges
+    #     RETURN type(r) as rel_type, target
+    #     """
+    #     result = self.graph.run(outgoing_edges_query, inverse_key=inverse_key)
+        
     def infer_disjoint_closure(self):
         #Find indirect disjoint relationships and create direct ones.
         query = """
@@ -214,7 +232,21 @@ class GraphReasoner:
         self.infer_disjoint_closure()
         self.mark_invalid_individuals()
 
+    def apply_equivalence_reasoning(self):
+        query = """
+        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]-(cond:EQUIV_COND)-[r]->(:PROPERTY_VALUE)
+        RETURN DISTINCT class, type(r) AS rel_type
+        """
+        results = self.graph.run(query)
 
+        for record in results:
+            class_node = record["class"]
+            # rel_type = record["rel_type"]
+            # handler = self.condition_handlers.get(rel_type)
+            handler = self.condition_handlers.get(class_node["name"])
+
+            if handler:
+                handler.evaluate_condition(class_node)
 
 # graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
 # reasoner = GraphReasoner(graph)
