@@ -23,6 +23,8 @@ class Main:
         self.perform_initial_mapping()
         self.add_metadata()
         self.perform_reasoning(selected_reasoning)
+        
+        return self.neo4j_graph
 
     def establish_connection(self):
         if self.neo4j_graph is None:  # Only establish connection if not already connected

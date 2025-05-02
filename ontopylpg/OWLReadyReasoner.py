@@ -24,10 +24,3 @@ class OWLReadyReasoner:
       self.onto.save(file=self.output_filepath, format="rdfxml")
       print(f"Ontology saved to {self.output_filepath}")
    
-
-# test =  Reasoner("example3.owl", "output_alice.owl")
-# test = Reasoner("inputs/animal.owl","outputs/animal.owl")
-# test.run_owlready_reasoner()
-# print("*******Reasoner finished********")
-# test.save_ontology()
-# print("*******Ontology saved********")
