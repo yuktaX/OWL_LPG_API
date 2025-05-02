@@ -96,83 +96,6 @@ class Mapper:
                      rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
                      self.neo4j_graph.merge(rel)
                
-   def process_equivalent_class_intersections(self):
-      for cls in self.onto.classes():
-         for eq in cls.equivalent_to:
-               if isinstance(eq, And):
-                  for part in eq.Classes:
-                     if isinstance(part, ThingClass):
-                           # It's a base class (like Pizza)
-                           start_node = Node("Class", name=self.owl_helper.extract_local_name(cls.iri))
-                           end_node = Node("Class", name=self.owl_helper.extract_local_name(part.iri))
-                           self.neo4j_graph.merge(start_node,"Class","name")
-                           self.neo4j_graph.merge(end_node,"Class","name")
-
-                           rel = Relationship(start_node,
-                                          "EQUIVALENT_TO",
-                                          end_node)
-                           self.neo4j_graph.merge(rel)
-                     elif isinstance(part, Restriction):
-                           prop_name = part.property.name
-                           filler = part.value
-
-                           restriction_id = f"{cls.name}_{prop_name}_{str(filler)}"
-                           restriction_node = Node("Restriction", type="some", id=restriction_id)
-                           self.neo4j_graph.merge(restriction_node, "Restriction", "id")
-
-                           start_node = Node("Class", name=self.owl_helper.extract_local_name(cls.iri))
-                           self.neo4j_graph.merge(start_node, "Class", "name")
-
-                           # From class to restriction
-                           self.neo4j_graph.merge(Relationship(start_node),
-                                                   "RESTRICTION", restriction_node)
-
-                           # Property node
-                           prop_node = Node("Property", name=prop_name)
-                           self.neo4j_graph.merge(prop_node,"Class","name")
-
-                           self.neo4j_graph.merge(Relationship(restriction_node, "ON_PROPERTY", prop_node))
-
-                           # Filler class (e.g., CheeseTopping)
-                           if isinstance(filler, ThingClass):
-                              filler_node = Node("Class", name=self.owl_helper.extract_local_name(filler.iri))
-                              self.neo4j_graph.merge(filler_node,"Class","name")
-
-                              self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
-
-                              # # Optional shortcut for querying
-                              # self.neo4j_graph.create(Relationship(start_node,
-                              #                                     f"{prop_name.upper()}",
-                              #                                     filler_node))
-                              subclasses = []
-                              self.owl_helper.rec_add_subclass(cls,subclasses)
-
-                              for cls in subclasses:
-                                 cls_name = self.owl_helper.extract_local_name(cls.iri)
-                                 
-                                 cls_node = self.nodes.get(cls.iri)
-                                 if not cls_node:
-                                    cls_node = Node("Class", name=cls_name)
-                                    self.neo4j_graph.merge(cls_node,"Class","name")
-                                    self.nodes[cls.iri] = cls_node
-                                 self.neo4j_graph.create(Relationship(cls_node,
-                                                                  f"{prop_name.upper()}",
-                                                                  filler_node))
-
-                           elif isinstance(filler, ConstrainedDatatype):
-                              filler_node = Node("Datatype", name=str(filler))
-                              self.neo4j_graph.merge(filler_node,"Datatype","name")
-                              self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
-                              print(f"Handled restriction to datatype: {filler}")
-                           else:
-                              print(f"Unknown filler type: {type(filler)}")
-
-                           self.neo4j_graph.merge(Relationship(restriction_node, "SOME_VALUES_FROM", filler_node))
-
-                           # Optional shortcut
-                           self.neo4j_graph.merge(Relationship(start_node,
-                                                   f"{prop_name.upper()}",
-                                                   filler_node))
            
    def process_individuals(self):
     for individual in self.onto.individuals():
@@ -185,21 +108,21 @@ class Mapper:
             self.neo4j_graph.create(individual_node)
             self.nodes[individual.iri] = individual_node 
       
+      #Adding object property edges
       for prop in self.onto.object_properties():
         values = list(prop[individual])
-        if values:
-            for v in values:
-               print(f"Individual obj props  {prop.name} -> {[v.name]}")
-               v_name = self.owl_helper.extract_local_name(v.iri)
-               v_node = self.nodes.get(v.iri)
-               if not v_node:
-                  v_node = Node("Class",name=v_name)
-                  self.neo4j_graph.create(v_node)
-                  self.nodes[v.iri] = v_node
-               
-               rel = Relationship(individual_node,prop.name.upper(),v_node)
-               self.neo4j_graph.merge(rel)
-               print(f"Created relationship with for {v_name} {individual_name}")
+        for v in values:
+            print(f"Individual obj props  {prop.name} -> {[v.name]}")
+            v_name = self.owl_helper.extract_local_name(v.iri)
+            v_node = self.nodes.get(v.iri)
+            if not v_node:
+               v_node = Node("Class",name=v_name)
+               self.neo4j_graph.create(v_node)
+               self.nodes[v.iri] = v_node
+            
+            rel = Relationship(individual_node,prop.name.upper(),v_node)
+            self.neo4j_graph.merge(rel)
+            print(f"Created relationship with for {v_name} {individual_name}")
 
       # Process class/subclass relationships
       for cls in individual.is_a:
@@ -218,77 +141,62 @@ class Mapper:
                self.neo4j_graph.merge(rel)
                print(f"Creating INSTANCE_OF: {individual_name} --> {class_name}")
 
-      # Process properties (object and data)
+      # Process data properties 
       for prop in individual.get_properties():
-         # A property can have multiple values\individuals
             for value in prop[individual]:
-                  # Check if value is another OWL individual and add the relationship
-                  if isinstance(value, Thing): 
-                     target_name = self.owl_helper.extract_local_name(value.iri)
-                     target_node = self.nodes.get(value.iri)
-
-                     if not target_node:
-                        target_node = Node("Individual", name = target_name)
-                        self.neo4j_graph.merge(target_node, "Individual", "name")
-                        self.nodes[value.iri] = target_node 
-                     
-                     rel = Relationship(individual_node, prop.name.upper(), target_node)
-                     self.neo4j_graph.merge(rel)
-                     print(f"Creating object property: {individual_name} --{prop.name.upper()}--> {target_name}")
 
                   # If Data property, set it on node
-                  elif isinstance(value, (str, int, float, bool)):  
+                  if isinstance(value, (str, int, float, bool)):  
                      individual_node[prop.name] = value
                      self.neo4j_graph.push(individual_node)
 
    def process_subclass_restrictions(self):
-        nodes = {}
-
-        for d_cls in self.onto.classes():
-            d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
+        
+        for cls in self.onto.classes():
+            cls_name = self.owl_helper.extract_local_name(cls.iri)
 
             # Fetch or create the domain class node
-            d_cls_node = nodes.get(d_cls.iri)
-            if not d_cls_node:
-                d_cls_node = Node("Class", name=d_cls_name)
-                self.neo4j_graph.merge(d_cls_node, "Class", "name")
-                nodes[d_cls.iri] = d_cls_node
+            cls_node = self.nodes.get(cls.iri)
+            if not cls_node:
+                cls_node = Node("Class", name=cls_name)
+                self.neo4j_graph.merge(cls_node, "Class", "name")
+                self.nodes[cls.iri] = cls_node
 
-            for superclass in d_cls.is_a:
+            for superclass in cls.is_a:
                 # Check if it is a "some" restriction (ObjectSomeValuesFrom)
                 if isinstance(superclass, owlready2.Restriction) and superclass.type == SOME:
                     prop = superclass.property  # Object Property
-                    r_cls = superclass.value     # Range Class
+                    target_cls = superclass.value     # Range Class
 
-                    if isinstance(r_cls, ThingClass):  # Ensure r_cls is a class, not an instance
-                        r_cls_name = self.owl_helper.extract_local_name(r_cls.iri)
+                    if isinstance(target_cls, ThingClass):  # Ensure target_cls is a class, not an instance
+                        target_cls_name = self.owl_helper.extract_local_name(target_cls.iri)
 
                         # Fetch or create the range class node
-                        r_cls_node = nodes.get(r_cls.iri)
-                        if not r_cls_node:
-                            r_cls_node = Node("Class", name=r_cls_name)
-                            self.neo4j_graph.merge(r_cls_node, "Class", "name")
-                            nodes[r_cls.iri] = r_cls_node
+                        target_cls_node = self.nodes.get(target_cls.iri)
+                        if not target_cls_node:
+                            target_cls_node = Node("Class", name=target_cls_name)
+                            self.neo4j_graph.merge(target_cls_node, "Class", "name")
+                            self.nodes[target_cls.iri] = target_cls_node
 
                         # Create relationship
                         prop_name = self.owl_helper.extract_local_name(prop.iri)
-                        rel = Relationship(d_cls_node, prop_name.upper(), r_cls_node)
+                        rel = Relationship(cls_node, prop_name.upper(), target_cls_node)
                         self.neo4j_graph.create(rel)
 
-                        print(f"Created relationship: {d_cls_name} -[:{prop_name.upper()}]-> {r_cls_name}")
+                        print(f"Created relationship: {cls_name} -[:{prop_name.upper()}]-> {target_cls_name}")
 
-   def add_cardinality_restrictions(self):
-        for d_cls in self.onto.classes():
-            d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
+   def process_cardinality_data(self):
+        for cls in self.onto.classes():
+            cls_name = self.owl_helper.extract_local_name(cls.iri)
 
             # Fetch or create domain class node
-            d_cls_node = self.nodes.get(d_cls.iri)
-            if not d_cls_node:
-                d_cls_node = Node("Class", name=d_cls_name)
-                self.neo4j_graph.merge(d_cls_node)
-                self.nodes[d_cls.iri] = d_cls_node
+            cls_node = self.nodes.get(cls.iri)
+            if not cls_node:
+                cls_node = Node("Class", name=cls_name)
+                self.neo4j_graph.merge(cls_node)
+                self.nodes[cls.iri] = cls_node
 
-            for superclass in d_cls.is_a:
+            for superclass in cls.is_a:
                 if isinstance(superclass, Restriction):
                     prop = superclass.property
                     prop_name = self.owl_helper.extract_local_name(prop.iri)
@@ -303,8 +211,6 @@ class Mapper:
 
                         cardinality = superclass.cardinality 
                         # if superclass.type == EXACTLY else superclass.value
-                        print("Cardinality type")
-                        print(cardinality)
 
                         # Create a unique name for the restriction node
                         restriction_name = f"{restriction_type}_{cardinality}"
@@ -315,12 +221,12 @@ class Mapper:
                                                 property=str(prop_name), 
                                                 restriction_type=str(restriction_type),
                                                 value=int(cardinality),
-                                                class_name=str(d_cls_name))
+                                                class_name=str(cls_name))
                         self.neo4j_graph.merge(restriction_node, "Restriction", "name")
 
                         # Connect class -> restriction
-                        self.neo4j_graph.merge(Relationship(d_cls_node, "HAS_RESTRICTION", restriction_node))
-                        print(f"Added cardinality restriction on {d_cls_name}: {restriction_type} {cardinality} for {prop_name}")
+                        self.neo4j_graph.merge(Relationship(cls_node, "HAS_RESTRICTION", restriction_node))
+                        print(f"Added cardinality restriction on {cls_name}: {restriction_type} {cardinality} for {prop_name}")
 
    def map_all(self):
       
@@ -336,32 +242,11 @@ class Mapper:
       # Step 4: Process Object Properties (Relationships)
       self.process_object_properties()
 
-
-      # Step 5: Process equivalent classes
-      # self.process_equivalent_class_intersections()
-
       # Step 5: Process subclass restrictions
       self.process_subclass_restrictions()
 
-      # Step 6: Process equivalent classes
-      # self.process_equivalent_class_intersections()
-
       # Step 7: Add cardinality restrictions
-      self.add_cardinality_restrictions()
+      self.process_cardinality_data()
 
       print("OWL to LPG Conversion Complete!")
       
-
-# filename = "inputs/PizzaOntology.rdf"
-# g = Connector(username="neo4j", password="12345")
-# graph = g.connect_neo4j()
-# node = Node("Class", name="Test")
-# graph.create(node)
-# print(graph)
-# m = Mapper(graph, filename, "xml")
-# # m.process_classes()
-# m.map_all()
-
-# from py2neo import Graph
-# graph = Graph("bolt://localhost:7687", auth=("neo4j", "12345"))
-# print(graph.run("RETURN 1").data())

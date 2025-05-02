@@ -12,25 +12,13 @@ class GraphReasoner:
             # Add other handlers as needed
         }
 
-    
-    def perform_reasoning(self):
-        self.add_inferred_inverse_properties()
-        self.add_inferred_subclass_relationships()
-        # self.add_inferred_object_properties()
-        
-        # self.propagate_properties_to_instances()
-        self.process_disjoint_inference()
-        self.apply_equivalence_reasoning()
-        self.add_inferred_transitive_relationships()
-        self.propagate_restrictions_to_subclasses()
-        
-        print("Reasoning completed.")
         
     def add_inferred_subclass_relationships(self):
         class_nodes = self.graph.nodes.match("Class")
         
         for cls in class_nodes:
             self.process_subclasses(cls, cls)
+
 
     def process_subclasses(self, ancestor_node, current_node):
         # Recursively adds inferred SUBCLASS_OF relationships.
@@ -55,6 +43,232 @@ class GraphReasoner:
             # Recurse deeper: child becomes new current_node
             self.process_subclasses(ancestor_node, child_node)
 
+
+    def find_subclasses(self, node):
+        # Find all subclasses and instances of a given class node
+        query = """
+        MATCH (sub:Class)-[:SUBCLASS_OF*0..]->(parent:Class)
+        WHERE id(parent) = $node_id
+        RETURN sub as node
+        """
+        result = self.graph.run(query, node_id=node.identity)
+        
+        return [record["node"] for record in result]
+
+
+    def find_superclasses(self, node):
+        # Find all superclasses of a given class node
+        query = """
+        MATCH (child:Class)-[:SUBCLASS_OF*1..]->(super:Class)
+        WHERE id(child) = $node_id
+        RETURN super
+        """
+        result = self.graph.run(query, node_id=node.identity)
+        
+        return [record["super"] for record in result]
+
+
+    def add_inferred_inverse_properties(self):
+        # Fetch all object property nodes
+        object_property_nodes = self.graph.nodes.match("ObjectProperty")
+        inverse_pairs = {}
+        
+        for node in object_property_nodes:
+            # Check if the node has an inverse property
+            query = """
+            MATCH (a:ObjectProperty)-[r:INVERSE_OF]->(b:ObjectProperty)
+            WHERE id(a) = $node_id
+            RETURN b
+            """
+            result = self.graph.run(query, node_id=node.identity)
+
+            for record in result:
+                inverse_node = record["b"]
+                inverse_pairs[node["name"].upper()] = inverse_node["name"].upper()
+        
+        for inverse_key, inverse_value in inverse_pairs.items():
+            #Get all nodes with inverse_key as the edge
+            query = """ 
+            MATCH (a)-[r]->(b)
+            WHERE type(r) = $inverse_key
+            RETURN a, b """
+            
+            result = self.graph.run(query, inverse_key=inverse_key)
+                        
+            for record in result:
+                a_node = record["a"]
+                b_node = record["b"]
+                
+                # Create a relationship for the reverse edge
+                inverse_relationship = Relationship(b_node, inverse_value.upper(), a_node)
+                
+                # Add the nodes and relationship to the graph
+                self.graph.merge(inverse_relationship)
+
+        
+    def infer_disjoint_closure(self):
+        #Find indirect disjoint relationships and create direct ones.
+        query = """
+        MATCH (a:CLASS_PROPERTY)-[:DISJOINT]->(b:CLASS_PROPERTY)-[:DISJOINT]->(c:CLASS_PROPERTY)
+        WHERE NOT (a)-[:DISJOINT]->(c)
+        RETURN a, c
+        """
+        result = self.graph.run(query)
+
+        for record in result:
+            a = record["a"]
+            c = record["c"]
+            # Create inferred disjoint relationship
+            disjoint_rel = Relationship(a, "DISJOINT", c)
+            self.graph.merge(disjoint_rel)
+
+
+    def mark_invalid_individuals(self):
+        # Ensure the 'Nothing' class node exists
+        self.graph.run("""
+        MERGE (:Class {name: 'Nothing'})
+        """)
+
+        # Find individuals that are instances of disjoint classes
+        query = """
+        MATCH (i:Individual)-[:INSTANCE_OF]->(c1:Class),
+            (i)-[:INSTANCE_OF]->(c2:Class),
+            (cp1:CLASS_PROPERTY {name: c1.name}),
+            (cp2:CLASS_PROPERTY {name: c2.name}),
+            (cp1)-[:DISJOINT]->(cp2)
+        //WHERE id(c1) < id(c2)  // avoid duplicates
+        RETURN DISTINCT i.name AS ind_name
+        """
+        result = self.graph.run(query).data()
+
+        for record in result:
+            ind_name = record["ind_name"]
+
+            # Delete all relationships of the individual
+            delete_rels_query = """
+            MATCH (i:Individual {name: $ind_name})-[r]-()
+            DELETE r
+            """
+            self.graph.run(delete_rels_query, ind_name=ind_name)
+
+            # Connect the individual to the 'Nothing' class
+            subclass_query = """
+            MATCH (i:Individual {name: $ind_name})
+            MATCH (n:Class {name: 'Nothing'})
+            MERGE (i)-[:SUBCLASS_OF]->(n)
+            """
+            self.graph.run(subclass_query, ind_name=ind_name)
+
+            print(f"✗ Invalid individual: {ind_name} → reassigned under 'Nothing'")
+
+    def process_disjoint_inference(self):
+        #High-level function to run both steps.
+
+        #adds transitively adds disjoint properties
+        self.infer_disjoint_closure()
+
+        #marks invlaid individuals as subclass or instance of the Nothing class
+        self.mark_invalid_individuals()
+
+
+    def add_inferred_transitive_relationships(self):
+        # Fetch all ObjectProperties
+        object_property_nodes = self.graph.nodes.match("ObjectProperty")
+        transitive_properties = set()
+
+        # Identify transitive object properties
+        for node in object_property_nodes:
+            query = """
+            MATCH (a:ObjectProperty)-[:TRANSITIVE]->()
+            WHERE id(a) = $node_id
+            RETURN a
+            """
+            result = self.graph.run(query, node_id=node.identity)
+            if result:
+                transitive_properties.add(node["name"].upper())
+        
+        print("Found transitive properties:", transitive_properties)
+
+        # For each transitive property, find all reachable nodes
+        for prop in transitive_properties:
+            query = f"""
+            MATCH (start)-[:`{prop}`*2..]->(end)
+            WHERE (start:Class OR start:Individual)
+            AND (end:Class OR end:Individual)
+            AND NOT (start)-[:`{prop}`]->(end)
+            RETURN DISTINCT start, end
+            """
+
+            result = self.graph.run(query)
+
+            for record in result:
+                start_node = record["start"]
+                end_node = record["end"]
+
+                # Create the direct inferred relationship
+                inferred_rel = Relationship(start_node, prop, end_node)
+                self.graph.merge(inferred_rel)
+
+                print(f"Created inferred transitive link: {start_node['name']} -[:{prop}]-> {end_node['name']}")
+    
+    
+    def propagate_restrictions_to_subclasses(self):
+    # Step 1: Find all classes with HAS_RESTRICTION relationships
+        query = """
+        MATCH (parent:Class)-[:HAS_RESTRICTION]->(restriction)
+        RETURN parent, restriction
+        """
+        results = self.graph.run(query).data()
+
+        for record in results:
+            parent_node = record["parent"]
+            restriction_node = record["restriction"]
+            
+            # Step 2: Find all subclasses of this parent, including indirect ones
+            subclass_query = """
+            MATCH (sub:Class)-[:SUBCLASS_OF*1..]->(parent:Class)
+            WHERE id(parent) = $parent_id
+            RETURN DISTINCT sub
+            """
+            subclasses = self.graph.run(subclass_query, parent_id=parent_node.identity).data()
+
+            # Step 3: Add the HAS_RESTRICTION relationship from each subclass to the same restriction
+            for subclass_record in subclasses:
+                subclass_node = subclass_record["sub"]
+                rel = Relationship(subclass_node, "HAS_RESTRICTION", restriction_node)
+                self.graph.merge(rel)
+
+                print(f"Added HAS_RESTRICTION from {subclass_node['name']} to restriction {restriction_node['name']}")
+    
+    def apply_equivalence_reasoning(self):
+        query = """
+        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
+        RETURN DISTINCT class, type(r) AS rel_type, cond
+        """
+        results = self.graph.run(query)
+
+        for record in results:
+            class_node = record["class"]
+            cond_node = record["cond"]
+            # rel_type = record["rel_type"]
+            # handler = self.condition_handlers.get(rel_type)
+            print("Record = ",cond_node["name"])
+            # handler = self.condition_handlers.get(cond_node["name"])
+            handler = self.condition_handlers.get(query)
+
+            if handler:
+                handler.evaluate_condition(class_node)
+
+    def perform_reasoning(self):
+        self.add_inferred_inverse_properties()
+        self.add_inferred_subclass_relationships()
+        self.process_disjoint_inference()
+        self.apply_equivalence_reasoning()
+        self.add_inferred_transitive_relationships()
+        self.propagate_restrictions_to_subclasses()
+        
+        print("Reasoning completed.")
+    
     def add_inferred_object_properties(self):
         # Find all object property relationships between Classes
         query = """
@@ -125,218 +339,6 @@ class GraphReasoner:
                 self.graph.merge(new_rel)
 
                 print(f"Created relationship: ({instance_node['name']})-[:{rel_type}]->({target_node['name']})")
-
-    def find_subclasses(self, node):
-        # Find all subclasses and instances of a given class node
-        query = """
-        MATCH (sub:Class)-[:SUBCLASS_OF*0..]->(parent:Class)
-        WHERE id(parent) = $node_id
-        RETURN sub as node
-        """
-        result = self.graph.run(query, node_id=node.identity)
-        
-        return [record["node"] for record in result]
-
-    def find_superclasses(self, node):
-        # Find all superclasses of a given class node
-        query = """
-        MATCH (child:Class)-[:SUBCLASS_OF*1..]->(super:Class)
-        WHERE id(child) = $node_id
-        RETURN super
-        """
-        result = self.graph.run(query, node_id=node.identity)
-        
-        return [record["super"] for record in result]
-
-    def add_inferred_inverse_properties(self):
-        # Fetch all object property nodes
-        object_property_nodes = self.graph.nodes.match("ObjectProperty")
-        inverse_pairs = {}
-        
-        for node in object_property_nodes:
-            # Check if the node has an inverse property
-            query = """
-            MATCH (a:ObjectProperty)-[r:INVERSE_OF]->(b:ObjectProperty)
-            WHERE id(a) = $node_id
-            RETURN b
-            """
-            result = self.graph.run(query, node_id=node.identity)
-
-            for record in result:
-                inverse_node = record["b"]
-                inverse_pairs[node["name"].upper()] = inverse_node["name"].upper()
-        
-        for inverse_key, inverse_value in inverse_pairs.items():
-            #Get all nodes with inverse_key as the edge
-            query = """ 
-            MATCH (a)-[r]->(b)
-            WHERE type(r) = $inverse_key
-            RETURN a, b """
-            
-            result = self.graph.run(query, inverse_key=inverse_key)
-                        
-            for record in result:
-                a_node = record["a"]
-                b_node = record["b"]
-                
-                # Create a relationship for the reverse edge
-                inverse_relationship = Relationship(b_node, inverse_value.upper(), a_node)
-                
-                # Add the nodes and relationship to the graph
-                self.graph.merge(inverse_relationship)
-
-
-        
-    def infer_disjoint_closure(self):
-        #Find indirect disjoint relationships and create direct ones.
-        query = """
-        MATCH (a:CLASS_PROPERTY)-[:DISJOINT]->(b:CLASS_PROPERTY)-[:DISJOINT]->(c:CLASS_PROPERTY)
-        WHERE NOT (a)-[:DISJOINT]->(c)
-        RETURN a, c
-        """
-        result = self.graph.run(query)
-
-        for record in result:
-            a = record["a"]
-            c = record["c"]
-            # Create inferred disjoint relationship
-            disjoint_rel = Relationship(a, "DISJOINT", c)
-            self.graph.merge(disjoint_rel)
-
-
-    def mark_invalid_individuals(self):
-        # Ensure the 'Nothing' class node exists
-        self.graph.run("""
-        MERGE (:Class {name: 'Nothing'})
-        """)
-
-        # Find individuals that are instances of disjoint classes
-        query = """
-        MATCH (i:Individual)-[:INSTANCE_OF]->(c1:Class),
-            (i)-[:INSTANCE_OF]->(c2:Class),
-            (cp1:CLASS_PROPERTY {name: c1.name}),
-            (cp2:CLASS_PROPERTY {name: c2.name}),
-            (cp1)-[:DISJOINT]->(cp2)
-        //WHERE id(c1) < id(c2)  // avoid duplicates
-        RETURN DISTINCT i.name AS ind_name
-        """
-        result = self.graph.run(query).data()
-
-        for record in result:
-            ind_name = record["ind_name"]
-
-            # Delete all relationships of the individual
-            delete_rels_query = """
-            MATCH (i:Individual {name: $ind_name})-[r]-()
-            DELETE r
-            """
-            self.graph.run(delete_rels_query, ind_name=ind_name)
-
-            # Connect the individual to the 'Nothing' class
-            subclass_query = """
-            MATCH (i:Individual {name: $ind_name})
-            MATCH (n:Class {name: 'Nothing'})
-            MERGE (i)-[:SUBCLASS_OF]->(n)
-            """
-            self.graph.run(subclass_query, ind_name=ind_name)
-
-            print(f"✗ Invalid individual: {ind_name} → reassigned under 'Nothing'")
-
-    def process_disjoint_inference(self):
-        """
-        High-level function to run both steps.
-        """
-        self.infer_disjoint_closure()
-        self.mark_invalid_individuals()
-
-
-    def apply_equivalence_reasoning(self):
-        query = """
-        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
-        RETURN DISTINCT class, type(r) AS rel_type, cond
-        """
-        results = self.graph.run(query)
-
-        for record in results:
-            class_node = record["class"]
-            cond_node = record["cond"]
-            # rel_type = record["rel_type"]
-            # handler = self.condition_handlers.get(rel_type)
-            print("Record = ",cond_node["name"])
-            # handler = self.condition_handlers.get(cond_node["name"])
-            handler = self.condition_handlers.get(query)
-
-            if handler:
-                handler.evaluate_condition(class_node)
-
-    def add_inferred_transitive_relationships(self):
-                # Step 1: Fetch all ObjectProperties
-        object_property_nodes = self.graph.nodes.match("ObjectProperty")
-        transitive_properties = set()
-
-        # Step 2: Identify transitive object properties
-        for node in object_property_nodes:
-            query = """
-            MATCH (a:ObjectProperty)-[:TRANSITIVE]->()
-            WHERE id(a) = $node_id
-            RETURN a
-            """
-            result = self.graph.run(query, node_id=node.identity)
-            if result.forward():
-                transitive_properties.add(node["name"].upper())
-        
-        print("Found transitive properties:", transitive_properties)
-
-        # Step 3: For each transitive property, find all reachable nodes
-        for prop in transitive_properties:
-            query = f"""
-            MATCH (start)-[:`{prop}`*2..]->(end)
-            WHERE (start:Class OR start:Individual)
-            AND (end:Class OR end:Individual)
-            AND NOT (start)-[:`{prop}`]->(end)
-            RETURN DISTINCT start, end
-            """
-
-            result = self.graph.run(query)
-
-            for record in result:
-                start_node = record["start"]
-                end_node = record["end"]
-
-                # Create the direct inferred relationship
-                inferred_rel = Relationship(start_node, prop, end_node)
-                self.graph.merge(inferred_rel)
-
-                print(f"Created inferred transitive link: {start_node['name']} -[:{prop}]-> {end_node['name']}")
-    def propagate_restrictions_to_subclasses(self):
-    # Step 1: Find all classes with HAS_RESTRICTION relationships
-        query = """
-        MATCH (parent:Class)-[:HAS_RESTRICTION]->(restriction)
-        RETURN parent, restriction
-        """
-        results = self.graph.run(query).data()
-
-        for record in results:
-            parent_node = record["parent"]
-            restriction_node = record["restriction"]
-            
-            # Step 2: Find all subclasses of this parent, including indirect ones
-            subclass_query = """
-            MATCH (sub:Class)-[:SUBCLASS_OF*1..]->(parent:Class)
-            WHERE id(parent) = $parent_id
-            RETURN DISTINCT sub
-            """
-            subclasses = self.graph.run(subclass_query, parent_id=parent_node.identity).data()
-
-            # Step 3: Add the HAS_RESTRICTION relationship from each subclass to the same restriction
-            for subclass_record in subclasses:
-                subclass_node = subclass_record["sub"]
-                rel = Relationship(subclass_node, "HAS_RESTRICTION", restriction_node)
-                self.graph.merge(rel)
-
-                print(f"Added HAS_RESTRICTION from {subclass_node['name']} to restriction {restriction_node['name']}")
-    
-
 
 # graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
 # reasoner = GraphReasoner(graph)
