@@ -448,6 +448,13 @@
                 <owl:someValuesFrom rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaBase"/>
             </owl:Restriction>
         </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#hasTopping"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://www.semanticweb.org/nehat/ontologies/2025/3/untitled-ontology-18#PizzaTopping"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
     </owl:Class>
     
 

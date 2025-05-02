@@ -282,6 +282,51 @@ class Mapper:
 
                         print(f"Created relationship: {d_cls_name} -[:{prop_name.upper()}]-> {r_cls_name}")
 
+   def add_cardinality_restrictions(self):
+        for d_cls in self.onto.classes():
+            d_cls_name = self.owl_helper.extract_local_name(d_cls.iri)
+
+            # Fetch or create domain class node
+            d_cls_node = self.nodes.get(d_cls.iri)
+            if not d_cls_node:
+                d_cls_node = Node("Class", name=d_cls_name)
+                self.neo4j_graph.merge(d_cls_node)
+                self.nodes[d_cls.iri] = d_cls_node
+
+            for superclass in d_cls.is_a:
+                if isinstance(superclass, Restriction):
+                    prop = superclass.property
+                    prop_name = self.owl_helper.extract_local_name(prop.iri)
+
+                    if superclass.type in [MIN, MAX, EXACTLY]:
+                        # Determine the type and value of restriction
+                        restriction_type = {
+                            MIN: "min",
+                            MAX: "max",
+                            EXACTLY: "exact"
+                        }[superclass.type]
+
+                        cardinality = superclass.cardinality 
+                        # if superclass.type == EXACTLY else superclass.value
+                        print("Cardinality type")
+                        print(cardinality)
+
+                        # Create a unique name for the restriction node
+                        restriction_name = f"{restriction_type}_{cardinality}"
+
+                        # Create Restriction node
+                        restriction_node = Node("Restriction", 
+                                                name=restriction_name,
+                                                property=str(prop_name), 
+                                                restriction_type=str(restriction_type),
+                                                value=int(cardinality),
+                                                class_name=str(d_cls_name))
+                        self.neo4j_graph.merge(restriction_node, "Restriction", "name")
+
+                        # Connect class -> restriction
+                        self.neo4j_graph.merge(Relationship(d_cls_node, "HAS_RESTRICTION", restriction_node))
+                        print(f"Added cardinality restriction on {d_cls_name}: {restriction_type} {cardinality} for {prop_name}")
+
    def map_all(self):
       
       # Step 1: Process OWL Classes and Create LPG Nodes
@@ -305,6 +350,9 @@ class Mapper:
 
 #       # Step 6: Process equivalent classes
 #       self.process_equivalent_class_intersections()
+
+      # Step 7: Add cardinality restrictions
+      self.add_cardinality_restrictions()
 
 
 

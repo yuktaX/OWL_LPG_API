@@ -23,6 +23,7 @@ class GraphReasoner:
         self.process_disjoint_inference()
         self.apply_equivalence_reasoning()
         self.add_inferred_transitive_relationships()
+        self.propagate_restrictions_to_subclasses()
         
         print("Reasoning completed.")
         
@@ -297,6 +298,33 @@ class GraphReasoner:
                 self.graph.merge(inferred_rel)
 
                 print(f"Created inferred transitive link: {start_node['name']} -[:{prop}]-> {end_node['name']}")
+    def propagate_restrictions_to_subclasses(self):
+    # Step 1: Find all classes with HAS_RESTRICTION relationships
+        query = """
+        MATCH (parent:Class)-[:HAS_RESTRICTION]->(restriction)
+        RETURN parent, restriction
+        """
+        results = self.graph.run(query).data()
+
+        for record in results:
+            parent_node = record["parent"]
+            restriction_node = record["restriction"]
+            
+            # Step 2: Find all subclasses of this parent, including indirect ones
+            subclass_query = """
+            MATCH (sub:Class)-[:SUBCLASS_OF*1..]->(parent:Class)
+            WHERE id(parent) = $parent_id
+            RETURN DISTINCT sub
+            """
+            subclasses = self.graph.run(subclass_query, parent_id=parent_node.identity).data()
+
+            # Step 3: Add the HAS_RESTRICTION relationship from each subclass to the same restriction
+            for subclass_record in subclasses:
+                subclass_node = subclass_record["sub"]
+                rel = Relationship(subclass_node, "HAS_RESTRICTION", restriction_node)
+                self.graph.merge(rel)
+
+                print(f"Added HAS_RESTRICTION from {subclass_node['name']} to restriction {restriction_node['name']}")
     
 
 
