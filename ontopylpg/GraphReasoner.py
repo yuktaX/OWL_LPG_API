@@ -211,7 +211,7 @@ class GraphReasoner:
 
                 print(f"Created inferred transitive link: {start_node['name']} -[:{prop}]-> {end_node['name']}")
     
-    
+
     def propagate_restrictions_to_subclasses(self):
     # Step 1: Find all classes with HAS_RESTRICTION relationships
         query = """
@@ -239,24 +239,14 @@ class GraphReasoner:
                 self.graph.merge(rel)
 
                 print(f"Added HAS_RESTRICTION from {subclass_node['name']} to restriction {restriction_node['name']}")
-    
+
+
     def apply_equivalence_reasoning(self):
-        query = """
-        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
-        RETURN DISTINCT class, type(r) AS rel_type, cond
-        """
-        results = self.graph.run(query)
+        for query, handler in self.condition_handlers.items():
+            results = self.graph.run(query)
 
-        for record in results:
-            class_node = record["class"]
-            cond_node = record["cond"]
-            # rel_type = record["rel_type"]
-            # handler = self.condition_handlers.get(rel_type)
-            print("Record = ",cond_node["name"])
-            # handler = self.condition_handlers.get(cond_node["name"])
-            handler = self.condition_handlers.get(query)
-
-            if handler:
+            for record in results:
+                class_node = record["class"]
                 handler.evaluate_condition(class_node)
 
     def perform_reasoning(self):
@@ -340,8 +330,3 @@ class GraphReasoner:
 
                 print(f"Created relationship: ({instance_node['name']})-[:{rel_type}]->({target_node['name']})")
 
-# graph = Graph("bolt://localhost:7687", auth=("neo4j", "neo4j_kt"))
-# reasoner = GraphReasoner(graph)
-# reasoner.add_inferred_subclass_relationships()
-# reasoner.add_inferred_object_properties()
-# reasoner.add_inferred_inverse_properties()

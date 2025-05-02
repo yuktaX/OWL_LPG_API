@@ -1,7 +1,6 @@
 from ontopylpg.equivalent_reasoner.EquivalenceReasoner import EquivalenceReasoner
 
 class EquivalenceReasoner1(EquivalenceReasoner):
-        
 
         def evaluate_condition(self, class_node):
             class_name = class_node["name"]
@@ -28,7 +27,7 @@ class EquivalenceReasoner1(EquivalenceReasoner):
                 for ind in individuals:
                     ind_name = ind["name"]
                     print(f"Checking individual: {ind_name}")
-                    all_classes_found = True
+                    all_classes_found = False
 
                     for cls in required_classes:
                         check_query = f"""
@@ -39,9 +38,9 @@ class EquivalenceReasoner1(EquivalenceReasoner):
                         """
                         exists_result = self.graph.run(check_query, ind_name=ind_name, cls=cls).evaluate()
 
-                        if not exists_result:
-                            all_classes_found = False
-                            print(f"  ✗ Missing required cls: {cls}")
+                        if exists_result:
+                            all_classes_found = True
+                            print(f"  ✗ Found one required cls: {cls}")
                             break
 
                     if all_classes_found:
@@ -61,7 +60,7 @@ class EquivalenceReasoner1(EquivalenceReasoner):
                     if cls_name == class_name:
                         continue  # Skip self
                     print(f"Checking class: {cls_name}")
-                    all_classes_found = True
+                    all_classes_found = False
 
                     for cls in required_classes:
                         check_query = f"""
@@ -72,9 +71,9 @@ class EquivalenceReasoner1(EquivalenceReasoner):
                         """
                         exists_result = self.graph.run(check_query, cls_name=cls_name, cls=cls).evaluate()
 
-                        if not exists_result:
-                            all_classes_found = False
-                            print(f"  ✗ Class missing cls: {cls}")
+                        if exists_result:
+                            all_classes_found = True
+                            print(f"  ✗ Found one required cls: {cls}")
                             break
 
                     if all_classes_found:

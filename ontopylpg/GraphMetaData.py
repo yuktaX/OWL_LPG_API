@@ -126,6 +126,8 @@ class GraphMetaData:
                else:
                   expressions = [eq_axiom]
 
+               print("------------------------------------------------------------------")
+               print(expressions)
 
                for expr in expressions:
                   if isinstance(expr, Restriction) and hasattr(expr, "property"):
@@ -237,13 +239,13 @@ class GraphMetaData:
 # neo4j_graph = connection.connect_neo4j()
 # ontology_file = "inputs/PizzaOntology.rdf"
 
-# # Create an instance of GraphMetaData
+# Create an instance of GraphMetaData
 # onto_metadata = GraphMetaData(ontology_file, neo4j_graph)
 
-# # Test the add_inverse_properties function
-# # onto_metadata.add_inverse_properties()
-# # onto_metadata.add_transitive_properties()
-# # onto_metadata.add_object_subproperties()
+# Test the add_inverse_properties function
+# onto_metadata.add_inverse_properties()
+# onto_metadata.add_transitive_properties()
+# onto_metadata.add_object_subproperties()
 
 # onto_metadata.add_all()
       
