@@ -131,7 +131,6 @@ class GraphMetaData:
                      # Determine target of restriction
                      if hasattr(expr, "value") and expr.value:
 
-
                         val = expr.value
                         
                         if isinstance(val, owlready2.class_construct.Or):

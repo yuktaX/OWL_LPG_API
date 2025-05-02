@@ -1,7 +1,7 @@
 from owlready2 import *
-from py2neo import Graph as Node, Relationship
-from OWLHelper import OWLHelper
-from Connector import Connector
+from py2neo import Graph, Node, Relationship
+from .OWLHelper import OWLHelper
+# from Connector import Connector
 
 class Mapper:
    
@@ -16,7 +16,6 @@ class Mapper:
       
       for cls in self.onto.classes():
          class_name = self.owl_helper.extract_local_name(cls.iri)
-         print("checkkkkk", self.neo4j_graph)
          
          # Create a Neo4j node for this class and add it to graph it if it doesn't exist
          class_node = Node("Class", name=class_name)
@@ -326,7 +325,6 @@ class Mapper:
    def map_all(self):
       
       # Step 1: Process OWL Classes and Create LPG Nodes
-      print(self.neo4j_graph, self.onto)
       self.process_classes()
       
       # Step 2: Process Subclass Relationships
@@ -345,8 +343,8 @@ class Mapper:
       # Step 5: Process subclass restrictions
       self.process_subclass_restrictions()
 
-#       # Step 6: Process equivalent classes
-#       self.process_equivalent_class_intersections()
+      # Step 6: Process equivalent classes
+      # self.process_equivalent_class_intersections()
 
       # Step 7: Add cardinality restrictions
       self.add_cardinality_restrictions()
@@ -354,12 +352,14 @@ class Mapper:
       print("OWL to LPG Conversion Complete!")
       
 
-filename = "inputs/PizzaOntology.rdf"
-g = Connector(username="neo4j", password="12345")
-graph = g.connect_neo4j()
-print(graph)
-m = Mapper(graph, filename, "xml")
-m.process_classes()
+# filename = "inputs/PizzaOntology.rdf"
+# g = Connector(username="neo4j", password="12345")
+# graph = g.connect_neo4j()
+# node = Node("Class", name="Test")
+# graph.create(node)
+# print(graph)
+# m = Mapper(graph, filename, "xml")
+# # m.process_classes()
 # m.map_all()
 
 # from py2neo import Graph
