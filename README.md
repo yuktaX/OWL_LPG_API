@@ -61,7 +61,7 @@ Main Python package containing all ontology-to-graph functionality.
 
 ---
 
-### ontopylpg/equivalent_reasoner/
+### `ontopylpg/equivalent_reasoner/`
 
 Submodule for handling equivalence-specific reasoning.
 
