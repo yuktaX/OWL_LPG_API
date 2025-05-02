@@ -112,7 +112,7 @@ class GraphMetaData:
 
          for eq_axiom in cls.equivalent_to:
                # Create intermediate condition node
-               condition_label = f"{class_name}_EquivCond"
+               condition_label = f"{class_name}_EquiCond"
                condition_node = Node("EQUI_COND", name=condition_label)
                self.neo4j_graph.merge(condition_node, "EQUI_COND", "name")
 
@@ -127,17 +127,10 @@ class GraphMetaData:
 
                for expr in expressions:
                   if isinstance(expr, Restriction) and hasattr(expr, "property"):
-                     # prop_name = self.owl_helper.extract_local_name(expr.property.iri)
-                     # property_node = Node("RESTRICTION_PROPERTY", name=prop_name)
-                     # self.neo4j_graph.merge(property_node, "RESTRICTION_PROPERTY", "name")
 
                      # Determine target of restriction
                      if hasattr(expr, "value") and expr.value:
-                     #    val = expr.value
-                     #    if hasattr(val, "iri"):
-                     #       target_name = self.owl_helper.extract_local_name(val.iri)
-                     #    else:
-                     #       target_name = str(val)
+
 
                         val = expr.value
                         
@@ -168,12 +161,6 @@ class GraphMetaData:
                            rel = Relationship(condition_node, self.owl_helper.extract_local_name(expr.property.iri), target_node)
                            self.neo4j_graph.merge(rel)
 
-                        # print("Created CLASS_PROPERTY (value)- ",target_name)
-                        # target_node = Node("CLASS_PROPERTY", name=target_name)
-                        # self.neo4j_graph.merge(target_node, "CLASS_PROPERTY", "name")
-
-                        # Edge: condition_node -[prop_name]-> target_node
-                        # self.neo4j_graph.merge(Relationship(condition_node, prop_name, target_node))
 
                      elif hasattr(expr, "some") and expr.some:
                         

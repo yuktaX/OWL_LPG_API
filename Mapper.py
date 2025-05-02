@@ -189,6 +189,22 @@ class Mapper:
             individual_node = Node("Individual", name=individual_name)
             self.neo4j_graph.create(individual_node)
             self.nodes[individual.iri] = individual_node 
+      
+      for prop in self.onto.object_properties():
+        values = list(prop[individual])
+        if values:
+            for v in values:
+               print(f"Individual obj props  {prop.name} -> {[v.name]}")
+               v_name = self.owl_helper.extract_local_name(v.iri)
+               v_node = self.nodes.get(v.iri)
+               if not v_node:
+                  v_node = Node("Class",name=v_name)
+                  self.neo4j_graph.create(v_node)
+                  self.nodes[v.iri] = v_node
+               
+               rel = Relationship(individual_node,prop.name.upper(),v_node)
+               self.neo4j_graph.merge(rel)
+               print(f"Created relationship with for {v_name} {individual_name}")
 
       # Process class/subclass relationships
       for cls in individual.is_a:

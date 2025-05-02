@@ -1,20 +1,25 @@
 from py2neo import Graph, Node, Relationship, NodeMatcher
-from ToppingEquivalenceReasoner import ToppingEquivalenceReasoner
+from EquivalenceReasoner1 import EquivalenceReasoner1
 
 class GraphReasoner:
     def __init__(self, graph: Graph):
         self.graph = graph
         self.condition_handlers = {
-            "CheesyPizza": ToppingEquivalenceReasoner(graph)
+            """
+        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
+        RETURN DISTINCT class, type(r) AS rel_type, cond
+        """: EquivalenceReasoner1(graph),
+            # "VegetarianPizza_EquiCond": ToppingEquivalenceReasoner(graph),
             # Add other handlers as needed
         }
 
     
     def perform_reasoning(self):
+        self.add_inferred_inverse_properties()
         self.add_inferred_subclass_relationships()
         # self.add_inferred_object_properties()
-        self.add_inferred_inverse_properties()
-        self.propagate_properties_to_instances()
+        
+        # self.propagate_properties_to_instances()
         self.process_disjoint_inference()
         self.apply_equivalence_reasoning()
         self.add_inferred_transitive_relationships()
@@ -236,16 +241,22 @@ class GraphReasoner:
 
     def apply_equivalence_reasoning(self):
         query = """
-        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]-(cond:EQUIV_COND)-[r]->(:PROPERTY_VALUE)
-        RETURN DISTINCT class, type(r) AS rel_type
+        MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
+        RETURN DISTINCT class, type(r) AS rel_type, cond
         """
         results = self.graph.run(query)
 
         for record in results:
             class_node = record["class"]
+            cond_node = record["cond"]
             # rel_type = record["rel_type"]
             # handler = self.condition_handlers.get(rel_type)
-            handler = self.condition_handlers.get(class_node["name"])
+            print("Record = ",cond_node["name"])
+            # handler = self.condition_handlers.get(cond_node["name"])
+            handler = self.condition_handlers.get(query)
+
+            if handler:
+                handler.evaluate_condition(class_node)
 
     def add_inferred_transitive_relationships(self):
                 # Step 1: Fetch all ObjectProperties
