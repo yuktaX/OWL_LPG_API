@@ -4,6 +4,7 @@ import owlready2
 from owlready2 import owl
 from owlready2 import And, Restriction, ThingClass
 
+
 import os
 from dotenv import load_dotenv
 
@@ -104,11 +105,14 @@ class GraphMetaData:
 
    def add_equivalent_classes(self):
       for cls in self.onto.classes():
+         #creating a node class
          class_name = self.owl_helper.extract_local_name(cls.iri)
          class_node = Node("CLASS_PROPERTY", name=class_name)
          self.neo4j_graph.merge(class_node, "CLASS_PROPERTY", "name")
 
+         #cls.equivalent_to gives a set of axioms that define classes equivalent to the given class under certain conditions
          for eq_axiom in cls.equivalent_to:
+               
                # Create intermediate condition node
                condition_label = f"{class_name}_EquiCond"
                condition_node = Node("EQUI_COND", name=condition_label)
@@ -117,11 +121,11 @@ class GraphMetaData:
                # Connect class to condition node
                self.neo4j_graph.merge(Relationship(class_node, "EQUIVALENT_TO", condition_node))
 
-               expressions = []
                if isinstance(eq_axiom, And):
                   expressions = list(eq_axiom.Classes)
                else:
                   expressions = [eq_axiom]
+
 
                for expr in expressions:
                   if isinstance(expr, Restriction) and hasattr(expr, "property"):
@@ -161,8 +165,8 @@ class GraphMetaData:
 
                      elif hasattr(expr, "some") and expr.some:
                         
-                        prop_node = Node("OBJECT_PROPERTY", name=self.owl_helper.extract_local_name(expr.property.iri))
-                        self.neo4j_graph.merge(prop_node, "OBJECT_PROPERTY", "name")
+                        # prop_node = Node("OBJECT_PROPERTY", name=self.owl_helper.extract_local_name(expr.property.iri))
+                        # self.neo4j_graph.merge(prop_node, "OBJECT_PROPERTY", "name")
                         
                         val = expr.some
                         
@@ -229,7 +233,7 @@ class GraphMetaData:
 # username = os.getenv("USERNAME_1")
 # password = os.getenv("PASSWORD")
 
-# connection = Connector("neo4j", "12345")
+# connection = Connector("neo4j", "neo4j_kt")
 # neo4j_graph = connection.connect_neo4j()
 # ontology_file = "inputs/PizzaOntology.rdf"
 
@@ -237,7 +241,9 @@ class GraphMetaData:
 # onto_metadata = GraphMetaData(ontology_file, neo4j_graph)
 
 # # Test the add_inverse_properties function
-# onto_metadata.add_inverse_properties()
-# onto_metadata.add_transitive_properties()
-# onto_metadata.add_object_subproperties()
+# # onto_metadata.add_inverse_properties()
+# # onto_metadata.add_transitive_properties()
+# # onto_metadata.add_object_subproperties()
+
+# onto_metadata.add_all()
       
