@@ -55,15 +55,14 @@ class Main:
     def clear_graph(self):
         self.neo4j_graph.delete_all()
 
-# file = "inputs/PizzaOntology.rdf"
-# selected_reasoning = ""
-# main_instance = Main(file, username="neo4j", password="12345")
-# main_instance.establish_connection()
-# print("---after conn", main_instance.neo4j_graph)
-# main_instance.perform_initial_mapping()
-# main_instance.add_metadata()
-# main_instance.perform_reasoning(selected_reasoning)
-# main_instance.run(selected_reasoning = None)
+file = "inputs/PizzaOntology.rdf"
+selected_reasoning = ""
+main_instance = Main(file, username="neo4j", password="neo4j_kt")
+main_instance.establish_connection()
+print("---after conn", main_instance.neo4j_graph)
+
+# main_instance.clear_graph()
+main_instance.run(selected_reasoning = None)
 
 
 
