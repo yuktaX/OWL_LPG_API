@@ -3,7 +3,7 @@ from main import Main
 
 # Streamlit App Configuration
 st.set_page_config(layout="wide")
-st.title("OntoPyLPG: A tool to persist, reason, and query on OWL files via Neo4j")
+st.title("OntoPyLPG: A tool to persist, reason, and query on OWL files using Neo4j")
 
 if 'main_instance' not in st.session_state:
     st.session_state.main_instance = Main(filename=None, username=None, password=None)
