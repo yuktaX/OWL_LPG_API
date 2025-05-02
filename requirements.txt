@@ -1,0 +1,4 @@
+py2neo>=2021.2.3
+owlready2>=0.44
+streamlit>=1.10
+pytest>=7.0s

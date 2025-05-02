@@ -1,4 +1,4 @@
-from EquivalenceReasoner import EquivalenceReasoner
+from ontopylpg.equivalent_reasoner.EquivalenceReasoner import EquivalenceReasoner
 
 class EquivalenceReasoner1(EquivalenceReasoner):
             

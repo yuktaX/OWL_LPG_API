@@ -1,12 +1,7 @@
 from owlready2 import *
-from py2neo import Graph as NeoGraph, Node, Relationship
-from Connector import Connector
+from py2neo import Graph as Node, Relationship
 from OWLHelper import OWLHelper
-import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+from Connector import Connector
 
 class Mapper:
    
@@ -21,6 +16,7 @@ class Mapper:
       
       for cls in self.onto.classes():
          class_name = self.owl_helper.extract_local_name(cls.iri)
+         print("checkkkkk", self.neo4j_graph)
          
          # Create a Neo4j node for this class and add it to graph it if it doesn't exist
          class_node = Node("Class", name=class_name)
@@ -330,6 +326,7 @@ class Mapper:
    def map_all(self):
       
       # Step 1: Process OWL Classes and Create LPG Nodes
+      print(self.neo4j_graph, self.onto)
       self.process_classes()
       
       # Step 2: Process Subclass Relationships
@@ -354,30 +351,17 @@ class Mapper:
       # Step 7: Add cardinality restrictions
       self.add_cardinality_restrictions()
 
-
-
       print("OWL to LPG Conversion Complete!")
       
-# # Retrieve environment variables
-# username = os.getenv("USERNAME_1")
-# password = os.getenv("PASSWORD")
 
+filename = "inputs/PizzaOntology.rdf"
+g = Connector(username="neo4j", password="12345")
+graph = g.connect_neo4j()
+print(graph)
+m = Mapper(graph, filename, "xml")
+m.process_classes()
+# m.map_all()
 
-# # Check if variables are loaded correctly
-# if not username or not password:
-#     raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
-
-# format = "xml"
-# connection = Connector(username, password)
-# neo4j_graph = connection.connect_neo4j()
-
-# filename = "inputs/PizzaOntology.rdf"
-# # filename = "outputs/output_pizza_new.owl"
-# # filename = "inputs/animal.owl"
-
-
-# test = Mapper(neo4j_graph, filename, format)
-
-# test.map_owl_to_lpg()
-
-
+# from py2neo import Graph
+# graph = Graph("bolt://localhost:7687", auth=("neo4j", "12345"))
+# print(graph.run("RETURN 1").data())

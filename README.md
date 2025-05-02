@@ -1,26 +1,66 @@
-# OWL_LPG_API
+# OntoPyLPG
 
-## 1. Mapping OWL to LPG format
+This project provides a Python-based framework to map OWL ontologies to a labeled property graph (LPG) in Neo4j, infer new knowledge directly on the graph using a custom reasoner, and explore the ontology through a Streamlit-based frontend.
 
-| **OWL Element**                              | **LPG Representation (Neo4j)**                               |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| **Class (`owl:Class`)**                      | Node labeled as the class name (`:Person`, `:City`)          |
-| **Individual (`owl:NamedIndividual`)**       | Node with label from its class (`(:Person {name: "Alice"})`) |
-| **Object Property (`owl:ObjectProperty`)**   | Relationship type (`(:Person)-[:livesIn]->(:City)`)          |
-| **Data Property (`owl:DatatypeProperty`)**   | Node property (`(:Person {age: 25})`)                        |
-| **SubClass (`rdfs:subClassOf`)**             | `(:ClassA)-[:SUBCLASS_OF]->(:ClassB)`                        |
-| **Equivalent Class (`owl:equivalentClass`)** | `(:ClassA)-[:EQUIVALENT_TO]->(:ClassB)`                      |
-| **Same Individual (`owl:sameAs`)**           | `(:EntityA)-[:SAME_AS]->(:EntityB)`                          |
+## 🧠 Motivation
 
-### Key Features
+OWL ontologies are expressive but RDF-based triple stores can be limited when it comes to graph analytics. This project explores how OWL ontologies can be persisted and reasoned over in a graph database like Neo4j, leveraging its native Cypher querying and graph pattern matching.
 
-1. **Fully LPG-Compatible**
-   - No RDF metadata retained; everything is structured for **efficient Cypher queries**.
-2. **Query Optimization**
-   - Direct Cypher queries like `MATCH (p:Person)-[:livesIn]->(c:City)` instead of complex RDF-based queries.
-3. **Data Property Storage**
+## 📁 Project Structure
 
-   - Attributes like `age`, `name` are stored as **node properties** instead of separate nodes.
+- `inputs/`  
+  Directory for `.owl` files to be uploaded and processed.
 
-4. **Ontology-Based Structuring**
-   - Subclass and equivalence relations are explicitly represented for **better reasoning support**.
+- `outputs/`  
+  Stores generated or exported artifacts like RDF/XML outputs or logs.
+
+- `frontend.py`  
+  Streamlit app to upload OWL files, trigger reasoning, and visualize results.
+
+- `main.py`  
+  Entrypoint script that ties together mapping, reasoning, and Neo4j connection.
+
+- `Connector.py`  
+  Handles connection setup and authentication to the Neo4j database.
+
+- `Mapper.py`  
+  Maps OWL entities (classes, individuals, properties) into the Neo4j property graph.
+
+- `GraphMetaData.py`  
+  Handles ontology-level metadata like ontology IRI, namespaces, and base URI.
+
+- `OWLHelper.py`  
+  Utility functions for OWL file parsing and ontology manipulation using Owlready2.
+
+- `OWLReadyReasoner.py`  
+  Adds inferred subclass and property relationships using Owlready2's reasoner.
+
+- `GraphReasoner.py`  
+  Custom reasoner that performs graph-based inferencing directly in Neo4j using Cypher.
+
+- `EquivalenceReasoner1.py`  
+  (Optional) Handles `owl:sameAs` or equivalence-related reasoning tasks.
+
+- `Tests/`  
+  Contains unit and integration tests (pytest-based).
+
+- `.env`  
+  Environment variables for sensitive info like Neo4j credentials.
+
+- `requirements.txt`  
+  Python package dependencies.
+
+## 🚀 Features
+
+- Upload and parse OWL ontologies using Owlready2.
+- Map OWL constructs to Neo4j's LPG model using py2neo.
+- Perform custom reasoning directly on the Neo4j graph
+- Interactive frontend using Streamlit.
+- Modular and extensible codebase.
+
+## 🛠️ Setup
+
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```

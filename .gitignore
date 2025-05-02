@@ -5,4 +5,5 @@ Tests/__pycache__
 Tests/.pytest_cache
 .pytest_cache
 .pyc
-.drawio
+inputs/uploaded_ontology.owl
+inputs/uploaded_ontology.rdf
