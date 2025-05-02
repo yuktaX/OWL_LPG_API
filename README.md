@@ -2,55 +2,76 @@
 
 This project provides a Python-based framework to map OWL ontologies to a labeled property graph (LPG) in Neo4j, infer new knowledge directly on the graph using a custom reasoner, and explore the ontology through a Streamlit-based frontend.
 
-## 🧠 Motivation
+## Motivation
 
 OWL ontologies are expressive but RDF-based triple stores can be limited when it comes to graph analytics. This project explores how OWL ontologies can be persisted and reasoned over in a graph database like Neo4j, leveraging its native Cypher querying and graph pattern matching.
 
-## 📁 Project Structure
+## Project Structure
 
 - `inputs/`  
-  Directory for `.owl` files to be uploaded and processed.
+  Folder where OWL ontology input files are placed for processing.
 
 - `outputs/`  
-  Stores generated or exported artifacts like RDF/XML outputs or logs.
+  Folder to store outputs like inferred ontology files or exported graph data.
 
-- `frontend.py`  
-  Streamlit app to upload OWL files, trigger reasoning, and visualize results.
-
-- `main.py`  
-  Entrypoint script that ties together mapping, reasoning, and Neo4j connection.
-
-- `Connector.py`  
-  Handles connection setup and authentication to the Neo4j database.
-
-- `Mapper.py`  
-  Maps OWL entities (classes, individuals, properties) into the Neo4j property graph.
-
-- `GraphMetaData.py`  
-  Handles ontology-level metadata like ontology IRI, namespaces, and base URI.
-
-- `OWLHelper.py`  
-  Utility functions for OWL file parsing and ontology manipulation using Owlready2.
-
-- `OWLReadyReasoner.py`  
-  Adds inferred subclass and property relationships using Owlready2's reasoner.
-
-- `GraphReasoner.py`  
-  Custom reasoner that performs graph-based inferencing directly in Neo4j using Cypher.
-
-- `EquivalenceReasoner1.py`  
-  (Optional) Handles `owl:sameAs` or equivalence-related reasoning tasks.
-
-- `Tests/`  
-  Contains unit and integration tests (pytest-based).
+- `tests/`  
+  Contains test scripts (e.g., pytest-based unit tests) to validate functionality of the project modules.
 
 - `.env`  
-  Environment variables for sensitive info like Neo4j credentials.
+  Stores environment variables like Neo4j credentials.
+
+- `.gitignore`  
+  Specifies intentionally untracked files to ignore in the Git repository.
+
+- `README.md`  
+  Project documentation and usage instructions.
 
 - `requirements.txt`  
-  Python package dependencies.
+  List of Python package dependencies.
 
-## 🚀 Features
+- `frontend.py`  
+  Streamlit-based GUI for user interaction (upload, connect, query).
+
+- `main.py`  
+  CLI entry point for running the full processing pipeline.
+
+---
+
+### `ontopylpg/`
+
+Main Python package containing all ontology-to-graph functionality.
+
+- `Connector.py`  
+  Manages the connection to the Neo4j database.
+
+- `GraphMetaData.py`  
+  Extracts and stores ontology-level metadata.
+
+- `GraphReasoner.py`  
+  Core reasoning logic for subclass, object property, inverse property, etc.
+
+- `Mapper.py`  
+  Converts OWL constructs into Neo4j property graph elements.
+
+- `OWLHelper.py`  
+  Helper functions for OWL term resolution and formatting.
+
+- `OWLReadyReasoner.py`  
+  Integrates Owlready2's built-in reasoner (if needed).
+
+---
+
+### ontopylpg/equivalent_reasoner/
+
+Submodule for handling equivalence-specific reasoning.
+
+- `EquivalenceReasoner.py`  
+  Abstract class to implement equivalent reasoning functions.
+
+- `EquivalenceReasoner1.py`  
+  Concrete implementation of equivalence reasoning.
+
+## Features
 
 - Upload and parse OWL ontologies using Owlready2.
 - Map OWL constructs to Neo4j's LPG model using py2neo.
@@ -58,7 +79,7 @@ OWL ontologies are expressive but RDF-based triple stores can be limited when it
 - Interactive frontend using Streamlit.
 - Modular and extensible codebase.
 
-## 🛠️ Setup
+## Setup
 
 1. Install dependencies:
    ```bash
