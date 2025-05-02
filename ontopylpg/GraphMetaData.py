@@ -1,9 +1,9 @@
+from .OWLHelper import OWLHelper
 from py2neo import *
 import owlready2
 from owlready2 import owl
 from owlready2 import And, Restriction, ThingClass
-from OWLHelper import OWLHelper
-from Connector import Connector
+
 import os
 from dotenv import load_dotenv
 
@@ -130,7 +130,6 @@ class GraphMetaData:
 
                      # Determine target of restriction
                      if hasattr(expr, "value") and expr.value:
-
 
                         val = expr.value
                         

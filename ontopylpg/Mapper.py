@@ -1,12 +1,7 @@
 from owlready2 import *
-from py2neo import Graph as NeoGraph, Node, Relationship
-from Connector import Connector
-from OWLHelper import OWLHelper
-import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+from py2neo import Graph, Node, Relationship
+from .OWLHelper import OWLHelper
+# from Connector import Connector
 
 class Mapper:
    
@@ -348,36 +343,25 @@ class Mapper:
       # Step 5: Process subclass restrictions
       self.process_subclass_restrictions()
 
-#       # Step 6: Process equivalent classes
-#       self.process_equivalent_class_intersections()
+      # Step 6: Process equivalent classes
+      # self.process_equivalent_class_intersections()
 
       # Step 7: Add cardinality restrictions
       self.add_cardinality_restrictions()
 
-
-
       print("OWL to LPG Conversion Complete!")
       
-# # Retrieve environment variables
-# username = os.getenv("USERNAME_1")
-# password = os.getenv("PASSWORD")
-
-
-# # Check if variables are loaded correctly
-# if not username or not password:
-#     raise ValueError("USERNAME or PASSWORD environment variables are not set. Check your .env file.")
-
-# format = "xml"
-# connection = Connector(username, password)
-# neo4j_graph = connection.connect_neo4j()
 
 # filename = "inputs/PizzaOntology.rdf"
-# # filename = "outputs/output_pizza_new.owl"
-# # filename = "inputs/animal.owl"
+# g = Connector(username="neo4j", password="12345")
+# graph = g.connect_neo4j()
+# node = Node("Class", name="Test")
+# graph.create(node)
+# print(graph)
+# m = Mapper(graph, filename, "xml")
+# # m.process_classes()
+# m.map_all()
 
-
-# test = Mapper(neo4j_graph, filename, format)
-
-# test.map_owl_to_lpg()
-
-
+# from py2neo import Graph
+# graph = Graph("bolt://localhost:7687", auth=("neo4j", "12345"))
+# print(graph.run("RETURN 1").data())

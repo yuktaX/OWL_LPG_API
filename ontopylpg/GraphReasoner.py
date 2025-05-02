@@ -1,5 +1,5 @@
 from py2neo import Graph, Node, Relationship, NodeMatcher
-from EquivalenceReasoner1 import EquivalenceReasoner1
+from ontopylpg.equivalent_reasoner.EquivalenceReasoner1 import EquivalenceReasoner1
 
 class GraphReasoner:
     def __init__(self, graph: Graph):
