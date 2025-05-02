@@ -102,8 +102,6 @@ class GraphMetaData:
                     self.neo4j_graph.merge(disjoint_relationship)
 
 
-
-
    def add_equivalent_classes(self):
       for cls in self.onto.classes():
          class_name = self.owl_helper.extract_local_name(cls.iri)

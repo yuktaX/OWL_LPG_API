@@ -9,7 +9,6 @@ class GraphReasoner:
         MATCH (class:CLASS_PROPERTY)-[:EQUIVALENT_TO]->(cond:EQUI_COND)-[r]->(:CLASS_PROPERTY)
         RETURN DISTINCT class, type(r) AS rel_type, cond
         """: EquivalenceReasoner1(graph),
-            # "VegetarianPizza_EquiCond": ToppingEquivalenceReasoner(graph),
             # Add other handlers as needed
         }
 
@@ -186,16 +185,7 @@ class GraphReasoner:
                 # Add the nodes and relationship to the graph
                 self.graph.merge(inverse_relationship)
 
-    # def add_inferred_inverse_properties(self):
-    #     # Skip inferred relationships from inverse properties
-    #     outgoing_edges_query = """
-    #     MATCH (class:Class)-[r]->(target)
-    #     WHERE id(class) = $class_id 
-    #     AND NOT type(r) IN ['SUBCLASS_OF', 'INSTANCE_OF'] 
-    #     AND NOT (target)-[:INVERSE_OF]->(class)  // skip inverse-based edges
-    #     RETURN type(r) as rel_type, target
-    #     """
-    #     result = self.graph.run(outgoing_edges_query, inverse_key=inverse_key)
+
         
     def infer_disjoint_closure(self):
         #Find indirect disjoint relationships and create direct ones.
@@ -213,24 +203,44 @@ class GraphReasoner:
             disjoint_rel = Relationship(a, "DISJOINT", c)
             self.graph.merge(disjoint_rel)
 
+
     def mark_invalid_individuals(self):
-        #Find individuals that are instances of disjoint classes and mark them invalid.
+        # Ensure the 'Nothing' class node exists
+        self.graph.run("""
+        MERGE (:Class {name: 'Nothing'})
+        """)
+
+        # Find individuals that are instances of disjoint classes
         query = """
         MATCH (i:Individual)-[:INSTANCE_OF]->(c1:Class),
             (i)-[:INSTANCE_OF]->(c2:Class),
             (cp1:CLASS_PROPERTY {name: c1.name}),
             (cp2:CLASS_PROPERTY {name: c2.name}),
             (cp1)-[:DISJOINT]->(cp2)
-        WHERE id(c1) < id(c2) // to avoid checking twice
-        RETURN DISTINCT i
+        //WHERE id(c1) < id(c2)  // avoid duplicates
+        RETURN DISTINCT i.name AS ind_name
         """
-        result = self.graph.run(query)
-    
+        result = self.graph.run(query).data()
+
         for record in result:
-            individual = record["i"]
-            # Mark the node invalid
-            individual["invalid"] = True
-            self.graph.push(individual)
+            ind_name = record["ind_name"]
+
+            # Delete all relationships of the individual
+            delete_rels_query = """
+            MATCH (i:Individual {name: $ind_name})-[r]-()
+            DELETE r
+            """
+            self.graph.run(delete_rels_query, ind_name=ind_name)
+
+            # Connect the individual to the 'Nothing' class
+            subclass_query = """
+            MATCH (i:Individual {name: $ind_name})
+            MATCH (n:Class {name: 'Nothing'})
+            MERGE (i)-[:SUBCLASS_OF]->(n)
+            """
+            self.graph.run(subclass_query, ind_name=ind_name)
+
+            print(f"✗ Invalid individual: {ind_name} → reassigned under 'Nothing'")
 
     def process_disjoint_inference(self):
         """
