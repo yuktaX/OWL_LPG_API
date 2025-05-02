@@ -213,18 +213,19 @@ class GraphReasoner:
     
 
     def propagate_restrictions_to_subclasses(self):
-    # Step 1: Find all classes with HAS_RESTRICTION relationships
+        # Step 1: Get all class nodes with cardinality restriction properties
         query = """
-        MATCH (parent:Class)-[:HAS_RESTRICTION]->(restriction)
-        RETURN parent, restriction
+        MATCH (parent:Class)
+        WHERE any(key IN keys(parent) WHERE key STARTS WITH "has_cardinality_")
+        RETURN parent
         """
         results = self.graph.run(query).data()
 
         for record in results:
             parent_node = record["parent"]
-            restriction_node = record["restriction"]
-            
-            # Step 2: Find all subclasses of this parent, including indirect ones
+            parent_name = parent_node["name"]
+
+            # Step 2: Find all subclasses (indirect too) of this parent node
             subclass_query = """
             MATCH (sub:Class)-[:SUBCLASS_OF*1..]->(parent:Class)
             WHERE id(parent) = $parent_id
@@ -232,13 +233,53 @@ class GraphReasoner:
             """
             subclasses = self.graph.run(subclass_query, parent_id=parent_node.identity).data()
 
-            # Step 3: Add the HAS_RESTRICTION relationship from each subclass to the same restriction
+            # Step 3: Get all keys from parent that are cardinality restrictions
+            restriction_keys = [key for key in parent_node.keys() if key.startswith("has_cardinality_")]
+
             for subclass_record in subclasses:
                 subclass_node = subclass_record["sub"]
-                rel = Relationship(subclass_node, "HAS_RESTRICTION", restriction_node)
-                self.graph.merge(rel)
+                updated = False
 
-                print(f"Added HAS_RESTRICTION from {subclass_node['name']} to restriction {restriction_node['name']}")
+                for key in restriction_keys:
+                    # Only set if not already present
+                    if key not in subclass_node:
+                        subclass_node[key] = parent_node[key]
+                        updated = True
+
+                if updated:
+                    self.graph.push(subclass_node)
+                    print(f"Propagated restrictions from {parent_name} to subclass {subclass_node['name']}")
+    def propagate_subproperty_relationships(self):
+        # Step 1: Get all ObjectProperty nodes and their transitive ancestors via SUBPROPERTY_OF
+        query_1 = """
+        MATCH (child:ObjectProperty)-[:SUBPROPERTY_OF*1..]->(ancestor:ObjectProperty)
+        RETURN child.name AS child_name, collect(DISTINCT ancestor.name) AS ancestors
+        """
+        result_1 = self.graph.run(query_1).data()
+
+        for record in result_1:
+            child_prop = record["child_name"]
+            ancestor_props = record["ancestors"]
+
+            print(f"\nProcessing property '{child_prop}' with ancestors {ancestor_props}")
+
+            # Step 2: For each pair of class nodes connected by 'child_prop', add edges for all ancestors
+            query_2 = f"""
+            MATCH (a:Class)-[r:`{child_prop.upper()}`]->(b:Class)
+            RETURN a, b
+            """
+            class_pairs = self.graph.run(query_2).data()
+
+            for pair in class_pairs:
+                a_node = pair["a"]
+                b_node = pair["b"]
+
+
+                for ancestor_prop in ancestor_props:
+                    print(f"Adding inferred relationship: ({a_node['name']}) -[:{ancestor_prop.upper()}]-> ({b_node['name']})")
+
+                    rel = Relationship(a_node, ancestor_prop.upper(), b_node)
+                    self.graph.merge(rel)
 
 
     def apply_equivalence_reasoning(self):
@@ -256,6 +297,7 @@ class GraphReasoner:
         self.apply_equivalence_reasoning()
         self.add_inferred_transitive_relationships()
         self.propagate_restrictions_to_subclasses()
+        self.propagate_subproperty_relationships()
         
         print("Reasoning completed.")
     
